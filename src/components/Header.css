@@ -14,7 +14,156 @@
   padding: 0;
 }
 
-.menu-btn,
+/* Menu Button - Igual ao Search Button */
+.menu-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1002;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.menu-btn.close {
+  transform: rotate(90deg);
+}
+
+.menu-btn.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Menu lateral */
+.menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-width: 320px;
+  height: 100vh;
+  margin: 0;
+  padding: 80px 40px 50px;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  list-style-type: none;
+  -webkit-font-smoothing: antialiased;
+  transform-origin: 0% 0%;
+  transform: translate(-100%, 0);
+  transition: transform 0.5s cubic-bezier(0.77, 0.2, 0.05, 1.0);
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.menu.open {
+  transform: translate(0, 0);
+}
+
+/* Overlay escuro quando menu está aberto */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+
+.menu-overlay.exiting {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.menu li {
+  padding: 15px 0;
+  font-size: 22px;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.menu li:last-child {
+  border-bottom: none;
+}
+
+.menu li a {
+  text-decoration: none;
+  color: #4A2C1A;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  display: block;
+}
+
+.menu li a:hover {
+  color: #8B4513;
+}
+
+.menu li.cart-menu-item {
+  padding: 0;
+  margin: 0;
+  border-bottom: none;
+}
+
+.menu li.cart-menu-item a {
+  background-color: #4A2C1A;
+  color: #FFFFFF;
+  padding: 15px 20px;
+  border-radius: 0;
+  font-size: 26px;
+  margin-left: -40px;
+  margin-right: -40px;
+  padding-left: 40px;
+  padding-right: 40px;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+}
+
+.menu li.cart-menu-item a:hover {
+  color: #FFFFFF;
+  background-color: #5a3c2a;
+}
+
+.cart-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-icon {
+  width: 28px;
+  height: 28px;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: brightness(0) invert(1);
+}
+
 .search-btn {
   background: none;
   border: none;
@@ -27,16 +176,9 @@
   height: 40px;
   position: absolute;
   top: 16px;
+  right: 16px;
   z-index: 10;
   transition: transform 0.3s ease;
-}
-
-.menu-btn {
-  left: 16px;
-}
-
-.search-btn {
-  right: 16px;
 }
 
 .search-btn.close {
@@ -48,10 +190,16 @@
   height: 24px;
   display: block;
   transition: opacity 0.2s ease;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .close-icon {
   color: #4A2C1A;
+  width: 24px;
+  height: 24px;
+  display: block;
+  flex-shrink: 0;
 }
 
 .logo-container {
@@ -59,12 +207,11 @@
   margin: 0;
   padding: 0;
   display: block;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.3s ease;
 }
 
 .logo-container.hidden {
   opacity: 0;
-  transform: scale(0.8);
   pointer-events: none;
 }
 
@@ -96,7 +243,7 @@
 
 .search-input {
   width: 100%;
-  padding: 10px 16px;
+  padding: 6px 16px;
   border: 2px solid #FDD8A7;
   border-radius: 25px;
   font-size: 16px;

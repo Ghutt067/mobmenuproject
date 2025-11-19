@@ -1,0 +1,103 @@
+.cart-bottom-modal {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #FFFFFF;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 0;
+  margin: 0;
+  animation: slideUp 0.3s ease-out;
+}
+
+.cart-bottom-modal.exiting {
+  animation: slideDown 0.3s ease-in forwards;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.cart-bottom-button {
+  background-color: #4A2C1A;
+  color: #FFFFFF;
+  border: none;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  transition: background-color 0.3s ease;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.cart-bottom-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #75563e;
+  background: linear-gradient(145deg, rgba(117, 86, 62, 1) 25%, rgba(69, 46, 32, 0) 100%);
+  color: #FFFFFF;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  min-height: 44px;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.cart-bottom-button:hover .cart-bottom-content {
+  opacity: 0.9;
+}
+
+.cart-bottom-button:hover {
+  background-color: #5a3c2a;
+}
+
+.cart-bottom-button:active {
+  background-color: #3a1c0a;
+}
+
+.cart-bottom-button:active .cart-bottom-content {
+  box-shadow: 4px 4px 6px 0 rgba(255,255,255,.3),
+              -4px -4px 6px 0 rgba(116, 125, 136, .2), 
+              inset -4px -4px 6px 0 rgba(255,255,255,.2),
+              inset 4px 4px 6px 0 rgba(0, 0, 0, .2);
+}
+
+.cart-bottom-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: brightness(0) invert(1);
+}
+

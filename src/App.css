@@ -17,30 +17,48 @@
   padding: 30px 16px 40px;
   background-color: #FFFFFF;
   max-width: 100%;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.main-content.with-cart-modal {
+  padding-bottom: 100px;
 }
 
 .section-title {
-  font-family: 'Eczar', serif;
-  font-size: 28px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 22px;
   font-weight: 700;
-  color: #4A2C1A;
-  margin-bottom: 30px;
+  color: #000000;
+  margin-top: 0;
+  margin-bottom: 16px;
   text-align: left;
 }
 
 .products-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  gap: 16px;
   margin-top: 10px;
   align-items: start;
+  justify-items: stretch;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+}
+
+.product-card {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Responsividade para telas muito pequenas */
 @media (max-width: 360px) {
   .products-grid {
     grid-template-columns: 1fr;
-    gap: 25px;
+    gap: 16px;
   }
   
   .logo-text {
@@ -52,15 +70,45 @@
   }
 }
 
-/* Ajustes para tablets (opcional, mas mantendo foco mobile) */
+/* Ajustes para tablets e telas médias */
 @media (min-width: 768px) {
   .main-content {
     max-width: 768px;
     margin: 0 auto;
     padding: 40px 24px;
+    width: 100%;
+    box-sizing: border-box;
   }
   
   .products-grid {
-    gap: 30px;
+    gap: 16px;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* Ajustes para telas grandes */
+@media (min-width: 1024px) {
+  .main-content {
+    max-width: 1024px;
+    padding: 40px 32px;
+  }
+  
+  .products-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Ajustes para telas muito grandes */
+@media (min-width: 1440px) {
+  .main-content {
+    max-width: 1440px;
+    padding: 40px 40px;
+  }
+  
+  .products-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
   }
 }

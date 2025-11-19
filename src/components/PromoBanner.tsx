@@ -1,7 +1,6 @@
-import React from 'react';
 import './PromoBanner.css';
 
-const PromoBanner: React.FC = () => {
+const PromoBanner = () => {
   return (
     <section className="promo-banner">
       <p className="promo-text">ESQUENTA BLACK FRIDAY - ATÉ 60%OFF</p>
