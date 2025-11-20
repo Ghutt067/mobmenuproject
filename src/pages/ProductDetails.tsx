@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { getProductById, type Product } from '../services/productService';
+import { getAllProducts, type Product } from '../services/productService';
 import { productImages } from '../data/products';
 import { useCart } from '../contexts/CartContext';
 import { formatPrice } from '../utils/priceFormatter';
@@ -23,22 +23,21 @@ function ProductDetails() {
 
   useEffect(() => {
     const fetchProduct = async () => {
-      if (!productId) return;
-      
       try {
         setIsLoading(true);
-        // Usar função otimizada para buscar apenas um produto
-        const foundProduct = await getProductById(productId);
+        const products = await getAllProducts();
+        const foundProduct = products.find(p => p.id === productId);
         setProduct(foundProduct || null);
       } catch (error) {
         console.error('Erro ao carregar produto:', error);
-        setProduct(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchProduct();
+    if (productId) {
+      fetchProduct();
+    }
   }, [productId]);
 
   // Observar visibilidade do botão original
