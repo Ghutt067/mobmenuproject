@@ -155,13 +155,6 @@ function Checkout() {
     removeFromCart(productId);
   };
 
-  const handleDeleteClick = (productId: string) => {
-    // Remove todas as unidades do produto
-    const quantity = getItemQuantity(productId);
-    for (let i = 0; i < quantity; i++) {
-      removeFromCart(productId);
-    }
-  };
 
   const handleApplyCoupon = () => {
     // TODO: Implementar lógica de cupom

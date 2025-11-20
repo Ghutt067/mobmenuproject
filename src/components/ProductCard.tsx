@@ -226,9 +226,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       }
 
       if (lastLineBottom > 0) {
-        const containerHeight = textContent.offsetHeight;
-        const actualHeight = Math.min(containerHeight, maxHeight);
-        
         // Colocar a máscara em 100%
         teD.style.setProperty('--mask-start', '100%');
       } else {
