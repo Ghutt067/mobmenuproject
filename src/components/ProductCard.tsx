@@ -4,6 +4,7 @@ import { productImages } from '../data/products';
 import AddToCartPopup from './AddToCartPopup';
 import { useCart } from '../contexts/CartContext';
 import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
+import { formatPrice } from '../utils/priceFormatter';
 import trashIcon from '../icons/trash-svgrepo-com.svg';
 import addIcon from '../icons/addicon.svg';
 import './ProductCard.css';
@@ -74,11 +75,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   }, [quantity]);
 
-  const handleTrashClick = () => {
+  const handleTrashClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     removeFromCart(productId);
   };
 
-  const handleBuyClick = () => {
+  const handleBuyClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     // Se já houver itens no carrinho, adiciona diretamente sem popup
     if (cartHasItems) {
       addToCart(productId);
@@ -105,6 +108,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleClose = () => {
     setIsPopupOpen(false);
+  };
+
+  const formattedOldPrice = formatPrice(oldPrice);
+  const formattedNewPrice = formatPrice(newPrice);
+
+  const handleProductClick = () => {
+    // Salvar posição de scroll antes de navegar
+    const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+    sessionStorage.setItem('homeScrollPosition', scrollPosition.toString());
+    sessionStorage.setItem('navigationActive', 'true');
+    navigate(`/product/${productId}`);
   };
 
   const handleReadMoreClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -283,7 +297,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <>
       <div className="product-card">
-        <div className="product-image-wrapper" ref={imageRef}>
+        <div className="product-image-wrapper" ref={imageRef} onClick={handleProductClick}>
           {!imageLoaded && !imageError && (
             <div className="product-image-placeholder" />
           )}
@@ -320,9 +334,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <div className="TeD" ref={teDRef}>
             <div className="product-text-wrapper">
               <div className="product-text-content readmore" ref={textContentRef}>
-                <h3 className="product-title">{title}</h3>
-                {description1 && <p className="product-description">{description1}</p>}
-                {description2 && <p className="product-description">{description2}</p>}
+                <h3 className="product-title" onClick={handleProductClick}>{title}</h3>
+                {description1 && <p className="product-description" onClick={handleProductClick}>{description1}</p>}
+                {description2 && <p className="product-description" onClick={handleProductClick}>{description2}</p>}
                 {isExpanded && fullDescription && (
                   <div className="product-full-description">
                     {fullDescription.split('\n').map((line, index) => (
@@ -345,6 +359,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   className="readmore-link readmore-link-top" 
                   onClick={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
+                    const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+                    if (scrollPosition > 0) {
+                      sessionStorage.setItem('homeScrollPosition', scrollPosition.toString());
+                    }
                     navigate(`/product/${productId}`);
                   }}
                 >
@@ -352,7 +371,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   <span className="readmore-text">Ver tudo</span>
                 </a>
               )}
-            <a href="#" className="readmore-link" onClick={handleReadMoreClick}>
+            <a href="#" className="readmore-link" onClick={(e) => {
+              e.stopPropagation();
+              handleReadMoreClick(e);
+            }}>
               <svg className="readmore-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M9 13L12 16M12 16L15 13M12 16V8M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -360,17 +382,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </a>
             </>
           )}
-          <div className="price-container">
-            {hasDiscount && oldPrice && oldPrice.trim() !== '' && oldPrice !== newPrice && (
+          <div className="price-container" onClick={handleProductClick}>
+            {hasDiscount && formattedOldPrice && formattedOldPrice.trim() !== '' && formattedOldPrice !== formattedNewPrice && (
               <>
-                <span className="price-old">{oldPrice}</span>
+                <span className="price-old">{formattedOldPrice}</span>
                 <span className="price-separator">|</span>
               </>
             )}
-            <span className="price-new">{newPrice}</span>
+            <span className="price-new">{formattedNewPrice}</span>
           </div>
         </div>
-        <div className="buy-btn-container">
+        <div className="buy-btn-container" onClick={(e) => e.stopPropagation()}>
           {cartHasItems && (
             <button className="trash-btn" onClick={handleTrashClick} aria-label="Remover do carrinho">
               <img src={trashIcon} alt="Remover" className="trash-icon" />

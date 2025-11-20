@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { getAllProducts, type Product } from '../services/productService';
 import { productImages } from '../data/products';
+import { formatPrice } from '../utils/priceFormatter';
 import trashIcon from '../icons/trash-svgrepo-com.svg';
 import addIcon from '../icons/add-ellipse-svgrepo-com.svg';
 import './Checkout.css';
@@ -20,6 +21,25 @@ function Checkout() {
   const animationRef = useRef<number | null>(null);
   const previousTotalRef = useRef<string>('0,00');
   const [isExpanded, setIsExpanded] = useState(false);
+  // IDs dos produtos que devem aparecer no "Peça também"
+  // Ordem: Produto 1, Produto 6, Produto 4, Produto 2, Produto 5 (todos da seção 2 - COMPLEMENTOS)
+  const [alsoOrderProductIds, setAlsoOrderProductIds] = useState<string[]>([
+    '7028cc82-ad0c-49b2-954a-62efa28de896', // Produto 1: Alfajor Tradicional
+    'd72803b0-bf5a-417a-9bff-29e00bc28b4b', // Produto 6: Doce de Leite com Café
+    'de89616b-5ca8-4582-8985-c91c80d68f57', // Produto 4: Kit 4 Queijos de Alagoa-MG
+    '8b41fd0e-bf2b-4e2f-a0d9-0d0115b1310f', // Produto 2: 4 Queijos de Alagoa + Geleia de Pimenta
+    '61b7a3a7-beee-4137-b2dc-0ed46e4c0dbe', // Produto 5: Bala de Doce de Leite 300g
+  ]);
+  const alsoOrderGridRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const dragStartXRef = useRef(0);
+  const isMouseDownRef = useRef(false);
+  // Flag para controlar se o produto da rota já foi adicionado automaticamente
+  const autoAddedProductRef = useRef<string | null>(null);
+  // Flag para controlar se produtos foram manualmente removidos (não re-adicionar automaticamente)
+  const manuallyRemovedProductsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -37,14 +57,22 @@ function Checkout() {
   }, []);
 
   // Adiciona o produto automaticamente se vier da rota e não estiver no carrinho
+  // Só adiciona uma vez, quando a página carrega pela primeira vez
+  // Não re-adiciona se o produto foi manualmente removido
   useEffect(() => {
-    if (productId && products.length > 0) {
+    if (productId && products.length > 0 && autoAddedProductRef.current !== productId) {
+      // Não adicionar se o produto foi manualmente removido
+      if (manuallyRemovedProductsRef.current.has(productId)) {
+        return;
+      }
+      
       const product = products.find(p => p.id === productId);
       const quantity = getItemQuantity(productId);
       
-      // Se o produto existe e não está no carrinho, adiciona
+      // Se o produto existe e não está no carrinho, adiciona apenas uma vez
       if (product && quantity === 0) {
         addToCart(productId);
+        autoAddedProductRef.current = productId;
       }
     }
   }, [productId, products, getItemQuantity, addToCart]);
@@ -56,6 +84,26 @@ function Checkout() {
       return quantity > 0;
     });
   }, [products, cartItems, getItemQuantity]);
+
+  // Filtrar produtos para "Peça também" - mantém todos os produtos visíveis mesmo após adicionar ao carrinho
+  // Mantém a ordem especificada no array alsoOrderProductIds
+  const alsoOrderProducts = useMemo(() => {
+    if (alsoOrderProductIds.length === 0) return [];
+    
+    // Criar um mapa para manter a ordem
+    const productMap = new Map<string, Product>();
+    products.forEach((product) => {
+      // Inclui todos os produtos da lista, independente de estarem no carrinho
+      if (alsoOrderProductIds.includes(product.id)) {
+        productMap.set(product.id, product);
+      }
+    });
+    
+    // Retornar na ordem especificada
+    return alsoOrderProductIds
+      .map((id) => productMap.get(id))
+      .filter((product): product is Product => product !== undefined);
+  }, [products, alsoOrderProductIds]);
 
   // Calcular total do carrinho
   const cartTotal = useMemo(() => {
@@ -152,6 +200,12 @@ function Checkout() {
   };
 
   const handleRemoveClick = (productId: string) => {
+    // Marcar o produto como manualmente removido para não ser re-adicionado automaticamente
+    manuallyRemovedProductsRef.current.add(productId);
+    // Limpar a flag de auto-adicionado se for o mesmo produto
+    if (autoAddedProductRef.current === productId) {
+      autoAddedProductRef.current = null;
+    }
     removeFromCart(productId);
   };
 
@@ -162,15 +216,75 @@ function Checkout() {
   };
 
   const handleAddMoreItems = () => {
+    // Garantir que a flag de navegação ativa esteja setada antes de voltar
+    sessionStorage.setItem('navigationActive', 'true');
     navigate('/');
   };
 
   const handleBackClick = () => {
+    // Garantir que a flag de navegação ativa esteja setada antes de voltar
+    sessionStorage.setItem('navigationActive', 'true');
     navigate('/');
   };
 
   const handleNext = () => {
     navigate('/checkout/identification');
+  };
+
+  // Handlers para drag scroll no desktop
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Não iniciar drag se clicar diretamente em botão
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) {
+      return;
+    }
+    
+    if (!alsoOrderGridRef.current) return;
+    isMouseDownRef.current = true;
+    dragStartXRef.current = e.clientX;
+    isDraggingRef.current = false; // Só ativa após movimento significativo
+    startXRef.current = e.pageX - alsoOrderGridRef.current.offsetLeft;
+    scrollLeftRef.current = alsoOrderGridRef.current.scrollLeft;
+  };
+
+  const handleMouseLeave = () => {
+    if (!alsoOrderGridRef.current) return;
+    isMouseDownRef.current = false;
+    isDraggingRef.current = false;
+    alsoOrderGridRef.current.style.cursor = 'grab';
+    alsoOrderGridRef.current.style.userSelect = 'auto';
+  };
+
+  const handleMouseUp = () => {
+    if (!alsoOrderGridRef.current) return;
+    isMouseDownRef.current = false;
+    isDraggingRef.current = false;
+    alsoOrderGridRef.current.style.cursor = 'grab';
+    alsoOrderGridRef.current.style.userSelect = 'auto';
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!alsoOrderGridRef.current || !isMouseDownRef.current) return;
+    
+    // Só ativa drag se o mouse estiver pressionado E houver movimento significativo
+    if (!isDraggingRef.current) {
+      const moveDistance = Math.abs(e.clientX - dragStartXRef.current);
+      // Só ativa drag se moveu mais de 10px (threshold maior para evitar ativação acidental)
+      if (moveDistance > 10) {
+        isDraggingRef.current = true;
+        alsoOrderGridRef.current.style.cursor = 'grabbing';
+        alsoOrderGridRef.current.style.userSelect = 'none';
+      }
+    }
+    
+    // Só faz scroll se realmente estiver em modo drag
+    if (isDraggingRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      const x = e.pageX - alsoOrderGridRef.current.offsetLeft;
+      const walk = (x - startXRef.current) * 2; // Velocidade do scroll
+      alsoOrderGridRef.current.scrollLeft = scrollLeftRef.current - walk;
+    }
   };
 
   if (isLoading) {
@@ -241,9 +355,9 @@ function Checkout() {
                       </div>
                       <div className="checkout-item-price">
                         {product.hasDiscount && product.oldPrice && product.oldPrice.trim() !== '' && product.oldPrice !== product.newPrice && (
-                          <span className="checkout-price-old">{product.oldPrice}</span>
+                          <span className="checkout-price-old">{formatPrice(product.oldPrice)}</span>
                         )}
-                        <span className="checkout-price-new">{product.newPrice}</span>
+                        <span className="checkout-price-new">{formatPrice(product.newPrice)}</span>
                       </div>
                       <div className="checkout-item-quantity">
                         <span className="quantity-label">Quantidade:</span>
@@ -286,14 +400,129 @@ function Checkout() {
         </div>
 
       {/* Seção "Peça também" - Opcional */}
+      {alsoOrderProducts.length > 0 && (
       <div className="checkout-also-order">
         <h3 className="checkout-section-title">Peça também</h3>
         <div className="checkout-also-order-content">
-          <div className="checkout-also-order-image">
-            {/* Placeholder para produtos relacionados - em construção */}
+            <div 
+              className="checkout-also-order-grid"
+              ref={alsoOrderGridRef}
+              onMouseDown={handleMouseDown}
+              onMouseLeave={handleMouseLeave}
+              onMouseUp={handleMouseUp}
+              onMouseMove={handleMouseMove}
+            >
+              {alsoOrderProducts.map((product) => {
+                const productImage = productImages[product.image] || productImages.product1;
+                return (
+                  <div 
+                    key={product.id} 
+                    className="checkout-also-order-item" 
+                    onMouseDown={(e) => {
+                      // Não iniciar drag se clicar no botão
+                      const target = e.target as HTMLElement;
+                      if (target.closest('button')) {
+                        return;
+                      }
+                      
+                      // Permitir que o drag funcione mesmo clicando no item
+                      // Mas marcar posição inicial para detectar se foi arrasto ou clique
+                      if (!alsoOrderGridRef.current) return;
+                      isMouseDownRef.current = true;
+                      dragStartXRef.current = e.clientX;
+                      startXRef.current = e.pageX - alsoOrderGridRef.current.offsetLeft;
+                      scrollLeftRef.current = alsoOrderGridRef.current.scrollLeft;
+                    }}
+                    onMouseMove={(e) => {
+                      // Usar a mesma lógica do grid para detectar drag
+                      if (!alsoOrderGridRef.current || !isMouseDownRef.current) return;
+                      
+                      // Só ativa drag se o mouse estiver pressionado E houver movimento significativo
+                      if (!isDraggingRef.current) {
+                        const moveDistance = Math.abs(e.clientX - dragStartXRef.current);
+                        // Só ativa drag se moveu mais de 10px
+                        if (moveDistance > 10) {
+                          isDraggingRef.current = true;
+                          alsoOrderGridRef.current.style.cursor = 'grabbing';
+                          alsoOrderGridRef.current.style.userSelect = 'none';
+                        }
+                      }
+                      
+                      // Só faz scroll se realmente estiver em modo drag
+                      if (isDraggingRef.current) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const x = e.pageX - alsoOrderGridRef.current.offsetLeft;
+                        const walk = (x - startXRef.current) * 2;
+                        alsoOrderGridRef.current.scrollLeft = scrollLeftRef.current - walk;
+                      }
+                    }}
+                    onMouseUp={() => {
+                      if (!alsoOrderGridRef.current) return;
+                      isMouseDownRef.current = false;
+                      isDraggingRef.current = false;
+                      alsoOrderGridRef.current.style.cursor = 'grab';
+                      alsoOrderGridRef.current.style.userSelect = 'auto';
+                    }}
+                    onMouseLeave={() => {
+                      if (!alsoOrderGridRef.current) return;
+                      isMouseDownRef.current = false;
+                      isDraggingRef.current = false;
+                      alsoOrderGridRef.current.style.cursor = 'grab';
+                      alsoOrderGridRef.current.style.userSelect = 'auto';
+                    }}
+                    onClick={(e) => {
+                      // Não navegar se clicar no botão de adicionar
+                      const target = e.target as HTMLElement;
+                      if (target.closest('button')) {
+                        return;
+                      }
+                      
+                      // Só navega se não estiver arrastando (movimento < 10px)
+                      const moveDistance = Math.abs(e.clientX - dragStartXRef.current);
+                      if (!isDraggingRef.current && moveDistance < 10) {
+                        // Salvar posição de scroll antes de navegar
+                        const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+                        if (scrollPosition > 0) {
+                          sessionStorage.setItem('homeScrollPosition', scrollPosition.toString());
+                        }
+                        sessionStorage.setItem('navigationActive', 'true');
+                        // Passar estado indicando que veio do checkout
+                        navigate(`/product/${product.id}`, { state: { fromCheckout: true } });
+                      }
+                    }}
+                  >
+                    <img
+                      src={productImage}
+                      alt={product.title}
+                      className="checkout-also-order-image"
+                    />
+                    <div className="checkout-also-order-info">
+                      <h4 className="checkout-also-order-title">{product.title}</h4>
+                      <div className="checkout-also-order-price">
+                        {product.hasDiscount && product.oldPrice && product.oldPrice.trim() !== '' && product.oldPrice !== product.newPrice && (
+                          <span className="checkout-also-order-price-old">{formatPrice(product.oldPrice)}</span>
+                        )}
+                        <span className="checkout-also-order-price-new">{formatPrice(product.newPrice)}</span>
+                      </div>
+                    </div>
+                    <button 
+                      className="checkout-also-order-add-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddClick(product.id);
+                      }}
+                      aria-label="Adicionar ao carrinho"
+                    >
+                      <img src={addIcon} alt="Adicionar" className="checkout-also-order-add-icon" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Seção de Cupom */}
       <div className="checkout-coupon">

@@ -363,17 +363,18 @@
 /* Progress Indicator */
 .identification-progress-wrapper {
   display: flex;
+  flex-direction: column;
   align-items: center;
   position: relative;
   padding: 24px;
   background-color: #FFFFFF;
+  gap: 16px;
 }
 
 .identification-back-icon-btn {
   position: absolute;
   left: 24px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 24px;
   background: none;
   border: none;
   padding: 0;
@@ -404,7 +405,7 @@
   justify-content: center;
   gap: 16px;
   width: 100%;
-  flex: 1;
+  margin-top: 8px;
 }
 
 .identification-step {
@@ -1417,6 +1418,15 @@
   gap: 16px;
   justify-content: center;
   margin-top: 8px;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.identification-actions.slide-out-left {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .identification-btn-continue {

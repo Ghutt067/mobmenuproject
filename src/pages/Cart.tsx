@@ -4,6 +4,7 @@ import { useCart } from '../contexts/CartContext';
 import { useSearch } from '../contexts/SearchContext';
 import { getAllProducts, type Product } from '../services/productService';
 import { productImages } from '../data/products';
+import { formatPrice } from '../utils/priceFormatter';
 import trashIcon from '../icons/trash-svgrepo-com.svg';
 import addIcon from '../icons/add-ellipse-svgrepo-com.svg';
 import addIconGreen from '../icons/addicon.svg';
@@ -19,6 +20,9 @@ function Cart() {
   const [animatingQuantities, setAnimatingQuantities] = useState<Set<string>>(new Set());
 
   const handleBackClick = () => {
+    // Garantir que a flag de navegação ativa esteja setada antes de voltar
+    sessionStorage.setItem('navigationActive', 'true');
+    // NÃO limpar a posição salva - ela será usada para restaurar o scroll
     navigate('/');
   };
 
@@ -181,9 +185,9 @@ function Cart() {
                     </div>
                     <div className="cart-item-price">
                       {product.hasDiscount && product.oldPrice && product.oldPrice.trim() !== '' && product.oldPrice !== product.newPrice && (
-                        <span className="cart-price-old">{product.oldPrice}</span>
+                        <span className="cart-price-old">{formatPrice(product.oldPrice)}</span>
                       )}
-                      <span className="cart-price-new">{product.newPrice}</span>
+                      <span className="cart-price-new">{formatPrice(product.newPrice)}</span>
                     </div>
                     <div className="cart-item-quantity">
                       <span className="quantity-label">Quantidade:</span>

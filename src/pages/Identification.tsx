@@ -4,6 +4,7 @@ import { useCart } from '../contexts/CartContext';
 import { useSearch } from '../contexts/SearchContext';
 import { getAllProducts, type Product } from '../services/productService';
 import { productImages } from '../data/products';
+import { formatPrice } from '../utils/priceFormatter';
 import logoImage from '../assets/fequeijaologo.png';
 import basketIcon from '../icons/basket-svgrepo-com.svg';
 import backIcon from '../icons/backicon.svg';
@@ -37,6 +38,7 @@ function Identification() {
   });
   const [selectedShipping, setSelectedShipping] = useState<string | null>('free');
   const [showPayment, setShowPayment] = useState(false);
+  const [isIdentificationHidden, setIsIdentificationHidden] = useState(false);
   const [showValidationError, setShowValidationError] = useState(false);
   const [cepData, setCepData] = useState<any>(null);
   const [isLoadingCep, setIsLoadingCep] = useState(false);
@@ -442,6 +444,21 @@ function Identification() {
     }
   }, [showValidationError]);
 
+  // Rolar para o topo quando a página de pagamento aparecer e esconder seção de identificação após transição
+  useEffect(() => {
+    if (showPayment) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Esconder a seção de identificação após a transição estar completa (500ms)
+      const timer = setTimeout(() => {
+        setIsIdentificationHidden(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      // Mostrar a seção de identificação quando voltar
+      setIsIdentificationHidden(false);
+    }
+  }, [showPayment]);
+
   const handleContinue = () => {
     // Validar antes de continuar
     if (!isFormValid) {
@@ -453,6 +470,8 @@ function Identification() {
     // Validar e enviar dados
     console.log('Continuar para pagamento');
     setShowPayment(true);
+    // Rolar para o topo quando mudar para a página de pagamento
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -521,7 +540,7 @@ function Identification() {
                             <div className="identification-cart-dropdown-info">
                               <div className="identification-cart-dropdown-title">{product.title}</div>
                               <div className="identification-cart-dropdown-details">
-                                <span className="identification-cart-dropdown-price">{product.newPrice}</span>
+                                <span className="identification-cart-dropdown-price">{formatPrice(product.newPrice)}</span>
                                 <span className="identification-cart-dropdown-quantity">Qtd: {quantity}</span>
                               </div>
                             </div>
@@ -592,6 +611,7 @@ function Identification() {
         {/* Container para transição */}
         <div className="identification-transition-container">
           {/* Seção de Identificação */}
+          {!isIdentificationHidden && (
           <div className={`identification-form-section ${showPayment ? 'slide-out-left' : ''}`}>
             {/* Personal Data Section */}
             <div className="identification-section">
@@ -903,6 +923,7 @@ function Identification() {
             </div>
 
           </div>
+          )}
 
           {/* Seção de Pagamento */}
           <div className={`payment-section ${showPayment ? 'slide-in-right' : ''}`}>
@@ -929,13 +950,12 @@ function Identification() {
                     <span className="payment-option-label">DÉBITO</span>
                   </div>
                 </button>
-              </div>
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="identification-actions">
+          <div className={`identification-actions ${showPayment ? 'slide-out-left' : ''}`}>
           <button 
             className={`identification-btn-continue ${!isFormValid ? 'identification-btn-continue-disabled' : ''}`}
             onClick={handleContinue}
@@ -943,6 +963,7 @@ function Identification() {
           >
             Continuar
           </button>
+          </div>
         </div>
       </main>
     </div>

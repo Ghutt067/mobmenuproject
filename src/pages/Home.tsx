@@ -1,7 +1,7 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
-import { getAllProducts, type Product } from '../services/productService';
+import { getAllProducts, getProductsGrouped, type Product, type Set } from '../services/productService';
 import { useSearch } from '../contexts/SearchContext';
 import { useCart } from '../contexts/CartContext';
 import CartBottomModal from '../components/CartBottomModal';
@@ -13,28 +13,18 @@ function Home() {
   const { searchTerm, isSearchOpen } = useSearch();
   const { hasItems } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
+  const [productSets, setProductSets] = useState<Set[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [scrollRestored, setScrollRestored] = useState(false);
   const hasRestoredScroll = useRef(false);
 
-  // Detectar se é refresh/reload ou navegação interna
+  // Desabilitar scroll automático do browser
   useEffect(() => {
-    // Resetar flag de restauração quando entrar na Home
-    hasRestoredScroll.current = false;
-    
-    // Verificar se é um refresh (não há flag de navegação ativa)
-    const isNavigationActive = sessionStorage.getItem('navigationActive');
-    
-    if (!isNavigationActive) {
-      // É um refresh/reload - limpar posição e começar do topo
-      sessionStorage.removeItem('homeScrollPosition');
-      window.scrollTo({ top: 0, behavior: 'auto' });
-      hasRestoredScroll.current = true;
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
     }
-    
-    // Marcar que a navegação está ativa (para próximas navegações)
-    sessionStorage.setItem('navigationActive', 'true');
     
     // Cleanup: remover flag quando a página for fechada
     const handleBeforeUnload = () => {
@@ -45,6 +35,81 @@ function Home() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
+  }, []);
+
+  // Restaurar scroll ANTES da pintura do browser (useLayoutEffect executa de forma síncrona)
+  useLayoutEffect(() => {
+    // Resetar flag de restauração quando entrar na Home - manter conteúdo oculto
+    hasRestoredScroll.current = false;
+    setScrollRestored(false);
+    
+    // Verificar se é um refresh
+    const isNavigationActive = sessionStorage.getItem('navigationActive');
+    const savedScrollPosition = sessionStorage.getItem('homeScrollPosition');
+    
+    // Se não há flag de navegação ativa E não há posição salva, é refresh/reload
+    if (!isNavigationActive && !savedScrollPosition) {
+      // É um refresh/reload - ir para o topo e mostrar conteúdo imediatamente
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo(0, 0);
+      hasRestoredScroll.current = true;
+      // Mostrar conteúdo imediatamente no refresh
+      setScrollRestored(true);
+    } else if (savedScrollPosition) {
+      // Há posição salva - restaurar scroll ANTES de mostrar o conteúdo
+      const scrollPos = parseInt(savedScrollPosition, 10);
+      
+      if (!isNaN(scrollPos) && scrollPos > 0) {
+        // Restaurar scroll de forma síncrona, antes de qualquer pintura
+        document.documentElement.scrollTop = scrollPos;
+        document.body.scrollTop = scrollPos;
+        window.scrollTo(0, scrollPos);
+        hasRestoredScroll.current = true;
+        
+        // Aguardar que o scroll seja realmente aplicado ANTES de mostrar o conteúdo
+        // Usar múltiplos requestAnimationFrame para garantir
+        requestAnimationFrame(() => {
+          // Forçar scroll novamente para garantir
+          document.documentElement.scrollTop = scrollPos;
+          document.body.scrollTop = scrollPos;
+          window.scrollTo(0, scrollPos);
+          
+          requestAnimationFrame(() => {
+            // Verificar se o scroll foi aplicado corretamente
+            const currentScroll = window.scrollY || document.documentElement.scrollTop;
+            if (Math.abs(currentScroll - scrollPos) < 10) {
+              // Scroll foi aplicado - mostrar conteúdo
+              setScrollRestored(true);
+            } else {
+              // Ainda não foi aplicado - forçar mais uma vez e aguardar
+              document.documentElement.scrollTop = scrollPos;
+              document.body.scrollTop = scrollPos;
+              window.scrollTo(0, scrollPos);
+              // Aguardar um pouco mais e mostrar
+              setTimeout(() => {
+                setScrollRestored(true);
+              }, 50);
+            }
+          });
+        });
+      } else {
+        // Posição inválida - ir para o topo
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        window.scrollTo(0, 0);
+        setScrollRestored(true);
+      }
+    } else {
+      // Navegação ativa mas sem posição salva - ir para o topo
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo(0, 0);
+      setScrollRestored(true);
+    }
+    
+    // Sempre marcar que a navegação está ativa (para próximas navegações)
+    sessionStorage.setItem('navigationActive', 'true');
   }, [location.pathname]);
 
   // Buscar produtos do banco de dados com priorização
@@ -53,12 +118,36 @@ function Home() {
     
     const fetchProducts = async () => {
       try {
-        // Não mostrar loading visível - carregar silenciosamente
-        const data = await getAllProducts();
+        // Buscar produtos agrupados por sets
+        const sets = await getProductsGrouped();
         
         // Verificar se o componente ainda está montado antes de atualizar
         if (isMounted) {
+          if (sets.length > 0) {
+            // Se há sets, usar a estrutura agrupada
+            setProductSets(sets);
+            // Também manter produtos para compatibilidade com busca
+            const allProducts: Product[] = [];
+            sets.forEach(set => {
+              if (set.products) {
+                allProducts.push(...set.products);
+              }
+              if (set.subsets) {
+                set.subsets.forEach(subset => {
+                  if (subset.products) {
+                    allProducts.push(...subset.products);
+                  }
+                });
+              }
+            });
+            setProducts(allProducts);
+          } else {
+            // Se não há sets, usar getAllProducts como fallback
+            const data = await getAllProducts();
           setProducts(data);
+            setProductSets([]);
+          }
+          
           // Marcar como carregado após um pequeno delay para garantir renderização
           requestAnimationFrame(() => {
             if (isMounted) {
@@ -71,6 +160,7 @@ function Home() {
         // Em caso de erro, mantém o array vazio para não quebrar a aplicação
         if (isMounted) {
           setProducts([]);
+          setProductSets([]);
           setIsLoading(false);
         }
       }
@@ -89,17 +179,22 @@ function Home() {
 
     const saveScrollPosition = () => {
       const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+      // Sempre salvar a posição
       if (scrollPosition > 0) {
         sessionStorage.setItem('homeScrollPosition', scrollPosition.toString());
       }
     };
 
     // Salvar periodicamente enquanto o usuário rola
-    const scrollTimer = setInterval(saveScrollPosition, 500);
+    const scrollTimer = setInterval(saveScrollPosition, 300);
+
+    // Salvar também no evento de scroll
+    window.addEventListener('scroll', saveScrollPosition, { passive: true });
 
     // Salvar quando o componente for desmontado (navegação para outra rota)
     return () => {
       clearInterval(scrollTimer);
+      window.removeEventListener('scroll', saveScrollPosition);
       // Salvar posição final quando sair da Home
       const finalScrollPosition = window.scrollY || document.documentElement.scrollTop;
       if (finalScrollPosition > 0) {
@@ -123,50 +218,39 @@ function Home() {
     }
   }, [hasItems(), showModal]);
 
-  // Restaurar posição de scroll quando voltar para a Home (navegação interna)
+  // Ajuste fino da posição de scroll após renderização completa (só se necessário)
   useEffect(() => {
-    // Só restaurar se:
-    // 1. Estivermos na Home
-    // 2. Não estiver carregando
-    // 3. Não tiver restaurado ainda nesta montagem
-    // 4. Não for um refresh (navigationActive existe)
     if (
       location.pathname === '/' && 
       !isLoading && 
-      !hasRestoredScroll.current &&
+      scrollRestored &&
       sessionStorage.getItem('navigationActive')
     ) {
       const savedScrollPosition = sessionStorage.getItem('homeScrollPosition');
       if (savedScrollPosition) {
         const scrollPos = parseInt(savedScrollPosition, 10);
-        if (scrollPos > 0) {
-          // Função para restaurar scroll
-          const restoreScroll = () => {
-            window.scrollTo({
-              top: scrollPos,
-              behavior: 'auto'
-            });
-            // Limpar a posição salva após restaurar
-            sessionStorage.removeItem('homeScrollPosition');
-            hasRestoredScroll.current = true;
+        if (!isNaN(scrollPos) && scrollPos > 0) {
+          // Ajuste fino após o conteúdo estar renderizado e visível
+          const adjustScroll = () => {
+            const currentScroll = window.scrollY || document.documentElement.scrollTop;
+            // Se a diferença for maior que 5px, ajustar
+            if (Math.abs(currentScroll - scrollPos) > 5) {
+              document.documentElement.scrollTop = scrollPos;
+              document.body.scrollTop = scrollPos;
+              window.scrollTo(0, scrollPos);
+            }
           };
-
-          // Aguardar múltiplos frames e um pequeno delay para garantir renderização completa
+          
+          // Aguardar um pouco para o conteúdo estar totalmente renderizado
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              setTimeout(() => {
-                restoreScroll();
-              }, 100);
+              adjustScroll();
             });
           });
-        } else {
-          hasRestoredScroll.current = true;
         }
-      } else {
-        hasRestoredScroll.current = true;
       }
     }
-  }, [location.pathname, isLoading]);
+  }, [location.pathname, isLoading, scrollRestored]);
 
   // Filtrar produtos baseado no termo de busca
   const filteredProducts = useMemo(() => {
@@ -179,19 +263,83 @@ function Home() {
       const titleMatch = product.title.toUpperCase().indexOf(searchUpper) > -1;
       const desc1Match = product.description1.toUpperCase().indexOf(searchUpper) > -1;
       const desc2Match = product.description2.toUpperCase().indexOf(searchUpper) > -1;
+      const fullDescMatch = product.fullDescription?.toUpperCase().indexOf(searchUpper) > -1;
       
-      return titleMatch || desc1Match || desc2Match;
+      return titleMatch || desc1Match || desc2Match || fullDescMatch;
     });
   }, [searchTerm, products]);
 
+  // Filtrar sets baseado no termo de busca
+  const filteredSets = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return productSets;
+    }
+
+    // Se há busca, retornar sets vazios e mostrar apenas produtos filtrados
+    return [];
+  }, [searchTerm, productSets]);
+
+  // Renderizar seções de produtos
+  const renderSections = () => {
+    // Se há busca ativa, mostrar apenas produtos filtrados sem seções
+    if (searchTerm.trim()) {
   return (
-    <>
-      <main className={`main-content ${showModal ? 'with-cart-modal' : ''}`} ref={mainContentRef}>
-          {!isSearchOpen && <h2 className="section-title">OS MAIS PEDIDOS:</h2>}
-          
           <div className="products-grid">
             {filteredProducts.length > 0 ? (
               filteredProducts.map((product, index) => (
+              <ProductCard
+                key={product.id}
+                productId={product.id}
+                image={product.image}
+                title={product.title}
+                description1={product.description1}
+                description2={product.description2}
+                oldPrice={product.oldPrice}
+                newPrice={product.newPrice}
+                fullDescription={product.fullDescription}
+                hasDiscount={product.hasDiscount}
+                priority={index < 6}
+              />
+            ))
+          ) : !isLoading ? (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#4A2C1A' }}>
+              <p>Nenhum produto encontrado para "{searchTerm}"</p>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    // Se há sets organizados, renderizar cada set como uma seção
+    if (filteredSets.length > 0) {
+      let globalProductIndex = 0;
+      return filteredSets.map((set) => {
+        const setProducts: Product[] = [];
+        
+        // Coletar produtos do set
+        if (set.products) {
+          setProducts.push(...set.products);
+        }
+        
+        // Coletar produtos dos subsets
+        if (set.subsets) {
+          set.subsets.forEach(subset => {
+            if (subset.products) {
+              setProducts.push(...subset.products);
+            }
+          });
+        }
+
+        if (setProducts.length === 0) return null;
+
+        const sectionStartIndex = globalProductIndex;
+        globalProductIndex += setProducts.length;
+
+        return (
+          <div key={set.id} className="product-section">
+            {!isSearchOpen && <h2 className="section-title">{set.name}:</h2>}
+            <div className="products-grid">
+              {setProducts.map((product, index) => (
                 <ProductCard
                   key={product.id}
                   productId={product.id}
@@ -203,7 +351,34 @@ function Home() {
                   newPrice={product.newPrice}
                   fullDescription={product.fullDescription}
                   hasDiscount={product.hasDiscount}
-                  priority={index < 6} // Primeiros 6 produtos carregam imediatamente (visíveis na tela)
+                  priority={sectionStartIndex + index < 6} // Primeiros 6 produtos carregam imediatamente
+                />
+              ))}
+            </div>
+          </div>
+        );
+      });
+    }
+
+    // Fallback: se não há sets, mostrar todos os produtos na seção "OS MAIS PEDIDOS"
+    return (
+      <>
+        {!isSearchOpen && <h2 className="section-title">OS MAIS PEDIDOS:</h2>}
+        <div className="products-grid">
+          {filteredProducts.length > 0 ? (
+            filteredProducts.map((product, index) => (
+              <ProductCard
+                key={product.id}
+                productId={product.id}
+                image={product.image}
+                title={product.title}
+                description1={product.description1}
+                description2={product.description2}
+                oldPrice={product.oldPrice}
+                newPrice={product.newPrice}
+                fullDescription={product.fullDescription}
+                hasDiscount={product.hasDiscount}
+                priority={index < 6} // Primeiros 6 produtos carregam imediatamente (visíveis na tela)
                 />
               ))
             ) : !isLoading ? (
@@ -212,6 +387,17 @@ function Home() {
               </div>
             ) : null}
           </div>
+      </>
+    );
+  };
+
+  return (
+    <>
+      <main 
+        className={`main-content ${showModal ? 'with-cart-modal' : ''} ${!scrollRestored ? 'restoring-scroll' : ''}`} 
+        ref={mainContentRef}
+      >
+        {renderSections()}
       </main>
       {showModal && <CartBottomModal isExiting={isExiting} />}
     </>

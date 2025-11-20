@@ -1,5 +1,18 @@
 import { supabase } from '../lib/supabase';
 
+// Cache de produtos em memória para evitar múltiplas requisições
+let productsCache: Product[] | null = null;
+let productsGroupedCache: Set[] | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
+// Limpar cache quando necessário
+export function clearProductsCache() {
+  productsCache = null;
+  productsGroupedCache = null;
+  cacheTimestamp = 0;
+}
+
 export interface Product {
   id: string;
   image: string;
@@ -12,6 +25,7 @@ export interface Product {
   setId?: string;
   subsetId?: string;
   fullDescription?: string;
+  forceBuyButton?: boolean; // Se true, sempre mostra botão COMPRAR mesmo no modo adicionar
 }
 
 /**
@@ -65,11 +79,75 @@ export interface Subset {
   products?: Product[];
 }
 
-// Buscar todos os produtos (mantendo compatibilidade com estrutura atual)
-export async function getAllProducts(): Promise<Product[]> {
+// Buscar um único produto por ID (otimizado)
+export async function getProductById(productId: string): Promise<Product | null> {
+  // Primeiro tentar buscar do cache se existir
+  if (productsCache) {
+    const cachedProduct = productsCache.find(p => p.id === productId);
+    if (cachedProduct) {
+      return cachedProduct;
+    }
+  }
+
+  // Se não estiver no cache, buscar do banco
   const { data, error } = await supabase
     .from('products')
     .select('*')
+    .eq('id', productId)
+    .eq('is_active', true)
+    .single();
+
+  if (error) {
+    console.error('Error fetching product:', error);
+    return null;
+  }
+
+  if (!data) return null;
+
+  const oldPrice = data.old_price || '';
+  const newPrice = data.new_price;
+  const hasDiscount = calculateHasDiscount(oldPrice, newPrice);
+
+  const product: Product = {
+    id: data.id,
+    image: data.image,
+    title: data.title,
+    description1: data.description1 || '',
+    description2: data.description2 || '',
+    oldPrice,
+    newPrice,
+    hasDiscount,
+    setId: data.set_id,
+    subsetId: data.subset_id,
+    fullDescription: data.full_description || '',
+    forceBuyButton: data.force_buy_button || false,
+  };
+
+  // Adicionar ao cache se existir
+  if (productsCache) {
+    const index = productsCache.findIndex(p => p.id === productId);
+    if (index >= 0) {
+      productsCache[index] = product;
+    } else {
+      productsCache.push(product);
+    }
+  }
+
+  return product;
+}
+
+// Buscar todos os produtos (mantendo compatibilidade com estrutura atual)
+export async function getAllProducts(useCache: boolean = true): Promise<Product[]> {
+  // Verificar se há cache válido
+  const now = Date.now();
+  if (useCache && productsCache && (now - cacheTimestamp) < CACHE_DURATION) {
+    return productsCache;
+  }
+
+  // Buscar do banco com seleção otimizada de campos
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, image, title, description1, description2, old_price, new_price, set_id, subset_id, full_description, force_buy_button')
     .eq('is_active', true)
     .order('display_order', { ascending: true });
 
@@ -78,7 +156,7 @@ export async function getAllProducts(): Promise<Product[]> {
     return [];
   }
 
-  return (data || []).map((product) => {
+  const products = (data || []).map((product) => {
     const oldPrice = product.old_price || '';
     const newPrice = product.new_price;
     // Calcula automaticamente o desconto baseado nos preços
@@ -96,16 +174,32 @@ export async function getAllProducts(): Promise<Product[]> {
       setId: product.set_id,
       subsetId: product.subset_id,
       fullDescription: product.full_description || '',
+      forceBuyButton: product.force_buy_button || false,
     };
   });
+
+  // Atualizar cache
+  productsCache = products;
+  cacheTimestamp = now;
+
+  return products;
 }
 
 // Buscar produtos agrupados por conjuntos e subconjuntos
-export async function getProductsGrouped(): Promise<Set[]> {
+export async function getProductsGrouped(useCache: boolean = true): Promise<Set[]> {
+  // Verificar cache
+  const now = Date.now();
+  if (useCache && productsGroupedCache && (now - cacheTimestamp) < CACHE_DURATION) {
+    return productsGroupedCache;
+  }
+
+  // Buscar todos os dados necessários usando o cache de produtos se disponível
+  const products = await getAllProducts(useCache);
+
   // Buscar conjuntos
   const { data: sets, error: setsError } = await supabase
     .from('sets')
-    .select('*')
+    .select('id, name, display_order')
     .eq('is_active', true)
     .order('display_order', { ascending: true });
 
@@ -117,7 +211,7 @@ export async function getProductsGrouped(): Promise<Set[]> {
   // Buscar subconjuntos
   const { data: subsets, error: subsetsError } = await supabase
     .from('subsets')
-    .select('*')
+    .select('id, set_id, name, display_order')
     .eq('is_active', true)
     .order('display_order', { ascending: true });
 
@@ -125,39 +219,8 @@ export async function getProductsGrouped(): Promise<Set[]> {
     console.error('Error fetching subsets:', subsetsError);
   }
 
-  // Buscar produtos
-  const { data: products, error: productsError } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_active', true)
-    .order('display_order', { ascending: true });
-
-  if (productsError) {
-    console.error('Error fetching products:', productsError);
-    return [];
-  }
-
-  // Mapear produtos
-  const mappedProducts: Product[] = (products || []).map((product) => {
-    const oldPrice = product.old_price || '';
-    const newPrice = product.new_price;
-    // Calcula automaticamente o desconto baseado nos preços
-    const hasDiscount = calculateHasDiscount(oldPrice, newPrice);
-    
-    return {
-      id: product.id,
-      image: product.image,
-      title: product.title,
-      description1: product.description1 || '',
-      description2: product.description2 || '',
-      oldPrice,
-      newPrice,
-      hasDiscount, // Usa o cálculo automático ao invés do valor do banco
-      setId: product.set_id,
-      subsetId: product.subset_id,
-      fullDescription: product.full_description || '',
-    };
-  });
+  // Usar produtos do cache ou já mapeados
+  const mappedProducts: Product[] = products;
 
   // Organizar em estrutura hierárquica
   const setsMap = new Map<string, Set>();
@@ -209,7 +272,16 @@ export async function getProductsGrouped(): Promise<Set[]> {
     }
   });
 
-  return Array.from(setsMap.values()).sort((a, b) => a.displayOrder - b.displayOrder);
+  const result = Array.from(setsMap.values()).sort((a, b) => a.displayOrder - b.displayOrder);
+  
+  // Atualizar cache
+  productsGroupedCache = result;
+  if (!productsCache) {
+    productsCache = mappedProducts;
+    cacheTimestamp = now;
+  }
+
+  return result;
 }
 
 /**
@@ -279,6 +351,7 @@ export async function createProduct(productData: CreateProductData): Promise<Pro
     setId: data.set_id,
     subsetId: data.subset_id,
     fullDescription: data.full_description || '',
+    forceBuyButton: data.force_buy_button || false,
   };
 }
 
@@ -344,6 +417,7 @@ export async function updateProduct(productData: UpdateProductData): Promise<Pro
     setId: data.set_id,
     subsetId: data.subset_id,
     fullDescription: data.full_description || '',
+    forceBuyButton: data.force_buy_button || false,
   };
 }
 

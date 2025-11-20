@@ -19,11 +19,12 @@ const CartBottomModal: React.FC<CartBottomModalProps> = ({ isExiting = false }) 
       setIsSearchOpen(false);
       setSearchTerm('');
     }
-    // Salvar posição de scroll da Home antes de navegar para o Cart
+    // Salvar posição de scroll da Home ANTES de navegar
     const scrollPosition = window.scrollY || document.documentElement.scrollTop;
-    if (scrollPosition > 0) {
-      sessionStorage.setItem('homeScrollPosition', scrollPosition.toString());
-    }
+    // Sempre salvar a posição
+    sessionStorage.setItem('homeScrollPosition', scrollPosition.toString());
+    // Garantir que a flag de navegação ativa esteja setada
+    sessionStorage.setItem('navigationActive', 'true');
     navigate('/cart');
   };
 

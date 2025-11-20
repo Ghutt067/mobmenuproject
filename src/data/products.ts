@@ -15,6 +15,12 @@ import product14Image from '../assets/product14.jpeg';
 import product15Image from '../assets/product15.png';
 import product16Image from '../assets/product16.png';
 import product17Image from '../assets/product17.jpeg';
+import product1s2Image from '../assets/product1s2.jpeg';
+import product2s2Image from '../assets/product2s2.jpeg';
+import product3s2Image from '../assets/product3s2.jpeg';
+import product4s2Image from '../assets/product4s2.jpeg';
+import product5s2Image from '../assets/product5s2.jpeg';
+import product6s2Image from '../assets/product6s2.jpeg';
 
 export interface Product {
   id: number;
@@ -45,6 +51,12 @@ export const productImages: Record<string, string> = {
   product15: product15Image,
   product16: product16Image,
   product17: product17Image,
+  product1s2: product1s2Image,
+  product2s2: product2s2Image,
+  product3s2: product3s2Image,
+  product4s2: product4s2Image,
+  product5s2: product5s2Image,
+  product6s2: product6s2Image,
 };
 
 export const products: Product[] = [

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logoImage from '../assets/fequeijaologo.png';
 import menuIcon from '../icons/menu-svgrepo-com.svg';
@@ -13,6 +13,7 @@ const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isOverlayExiting, setIsOverlayExiting] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   const handleSearchClick = () => {
@@ -49,6 +50,16 @@ const Header: React.FC = () => {
     }
   }, [isMenuOpen, showOverlay]);
 
+  // Focar o input quando a pesquisa abrir
+  useEffect(() => {
+    if (isSearchOpen && searchInputRef.current) {
+      // Usar setTimeout para garantir que o DOM foi atualizado
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 0);
+    }
+  }, [isSearchOpen]);
+
   const handleCartClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     handleMenuClose();
@@ -57,6 +68,10 @@ const Header: React.FC = () => {
       setIsSearchOpen(false);
       setSearchTerm('');
     }
+    // Salvar posição de scroll da Home antes de navegar para o Cart
+    const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+    sessionStorage.setItem('homeScrollPosition', scrollPosition.toString());
+    sessionStorage.setItem('navigationActive', 'true');
     navigate('/cart');
   };
 
@@ -78,13 +93,7 @@ const Header: React.FC = () => {
         
         <ul id="menu" className={`menu ${isMenuOpen ? 'open' : ''}`}>
           <li>
-            <a href="#track" onClick={handleMenuClose}>Rastrear Pedido</a>
-          </li>
-          <li>
             <a href="#about" onClick={handleMenuClose}>Quem Somos</a>
-          </li>
-          <li>
-            <a href="#faq" onClick={handleMenuClose}>Perguntas Frequentes</a>
           </li>
           <li>
             <a href="#contact" onClick={handleMenuClose}>Contato</a>
@@ -107,11 +116,11 @@ const Header: React.FC = () => {
         
         <div className={`search-container ${isSearchOpen ? 'expanded' : ''}`}>
           <input
+            ref={searchInputRef}
             type="text"
             id="search-input"
             className={`search-input ${isSearchOpen ? 'square' : ''}`}
             placeholder="Buscar produtos..."
-            autoFocus={isSearchOpen}
             onChange={handleSearchChange}
           />
         </div>
