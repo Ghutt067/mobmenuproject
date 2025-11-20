@@ -2,6 +2,8 @@
   width: 100%;
   min-height: 100vh;
   background-color: #FFFFFF;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .fixed-header {
@@ -9,8 +11,11 @@
   top: 0;
   left: 0;
   width: 100%;
+  max-width: 100%;
   z-index: 1000;
   background-color: #FFFFFF;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .main-content {
@@ -20,10 +25,12 @@
   box-sizing: border-box;
   width: 100%;
   margin: 0 auto;
+  overflow-x: hidden;
+  position: relative;
 }
 
 .main-content.with-cart-modal {
-  padding-bottom: 100px;
+  padding: 30px 16px 100px 16px;
 }
 
 .section-title {
@@ -49,6 +56,7 @@
   max-width: 100%;
   box-sizing: border-box;
   padding: 0;
+  overflow: visible;
 }
 
 .product-card {
@@ -59,6 +67,8 @@
   flex-direction: column;
   justify-self: stretch;
   margin: 0;
+  overflow: visible;
+  position: relative;
 }
 
 /* Responsividade para telas muito pequenas */

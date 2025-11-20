@@ -81,6 +81,7 @@ html::-webkit-scrollbar {
 
 body {
   margin: 0;
+  padding: 0;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
@@ -90,6 +91,9 @@ body {
   color: #4A2C1A;
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 body::-webkit-scrollbar {
@@ -101,4 +105,6 @@ body::-webkit-scrollbar {
 #root {
   width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
