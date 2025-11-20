@@ -19,6 +19,7 @@
   max-width: 100%;
   box-sizing: border-box;
   width: 100%;
+  margin: 0 auto;
 }
 
 .main-content.with-cart-modal {
@@ -40,6 +41,8 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   margin-top: 10px;
+  margin-left: 0;
+  margin-right: 0;
   align-items: start;
   justify-items: stretch;
   width: 100%;
@@ -52,6 +55,10 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-self: stretch;
+  margin: 0;
 }
 
 /* Responsividade para telas muito pequenas */
