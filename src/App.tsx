@@ -18,34 +18,15 @@ function App() {
   const isIdentificationPage = location.pathname === '/checkout/identification';
   const isProductDetailsPage = location.pathname.startsWith('/product/');
 
-  // Garantir que o scroll está no topo ao carregar a aplicação
-  useEffect(() => {
-    // Se não há flag de navegação ativa, é primeira carga ou refresh - garantir que está no topo
-    if (!sessionStorage.getItem('navigationActive')) {
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      window.scrollTo(0, 0);
-      // Limpar posição salva se houver
-      sessionStorage.removeItem('homeScrollPosition');
-    }
-  }, []);
-
   // Manter flag de navegação ativa durante navegações internas
   useEffect(() => {
-    // Se já existe uma flag de navegação ativa, manter
-    // Se não existe, criar (primeira navegação após refresh)
-    if (!sessionStorage.getItem('navigationActive')) {
-      // Se não há flag, pode ser primeira carga ou refresh
-      // Verificar se há posição salva - se houver, é navegação interna
-      const hasSavedPosition = sessionStorage.getItem('homeScrollPosition');
-      if (hasSavedPosition) {
-        // Há posição salva, então é navegação interna (não refresh)
-        sessionStorage.setItem('navigationActive', 'true');
-      }
-    } else {
-      // Flag já existe, garantir que continue ativa
+    // Se já existe uma flag de navegação ativa, garantir que continue ativa
+    // A flag é setada antes de navegar pelas páginas (Cart, Checkout, ProductDetails)
+    if (sessionStorage.getItem('navigationActive')) {
       sessionStorage.setItem('navigationActive', 'true');
     }
+    // Se não há flag, significa que é refresh/primeira carga
+    // O Home.tsx vai detectar isso e ir para o topo
   }, [location.pathname]);
 
   useEffect(() => {

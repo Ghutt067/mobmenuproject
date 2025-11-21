@@ -43,21 +43,22 @@ function Home() {
     hasRestoredScroll.current = false;
     setScrollRestored(false);
     
-    // Verificar se é um refresh
+    // Verificar se é um refresh ou navegação interna
     const isNavigationActive = sessionStorage.getItem('navigationActive');
     const savedScrollPosition = sessionStorage.getItem('homeScrollPosition');
     
-    // Se não há flag de navegação ativa E não há posição salva, é refresh/reload
-    if (!isNavigationActive && !savedScrollPosition) {
-      // É um refresh/reload - ir para o topo e mostrar conteúdo imediatamente
+    // Se não há flag de navegação ativa, é refresh/primeira carga - SEMPRE ir para o topo
+    if (!isNavigationActive) {
+      // É um refresh/reload/primeira carga - ir para o topo e limpar posição salva (se houver)
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
       window.scrollTo(0, 0);
+      sessionStorage.removeItem('homeScrollPosition'); // Limpar posição salva antiga
       hasRestoredScroll.current = true;
       // Mostrar conteúdo imediatamente no refresh
       setScrollRestored(true);
-    } else if (savedScrollPosition) {
-      // Há posição salva - restaurar scroll ANTES de mostrar o conteúdo
+    } else if (isNavigationActive && savedScrollPosition) {
+      // Há flag de navegação ativa E posição salva - é navegação interna, restaurar scroll
       const scrollPos = parseInt(savedScrollPosition, 10);
       
       if (!isNaN(scrollPos) && scrollPos > 0) {
