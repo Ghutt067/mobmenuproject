@@ -25,7 +25,7 @@ function Checkout() {
   const previousCartLengthRef = useRef<number>(0);
   // IDs dos produtos que devem aparecer no "Peça também"
   // Ordem: Produto 1, Produto 6, Produto 4, Produto 2, Produto 5 (todos da seção 2 - COMPLEMENTOS)
-  const [alsoOrderProductIds, setAlsoOrderProductIds] = useState<string[]>([
+  const [alsoOrderProductIds] = useState<string[]>([
     '7028cc82-ad0c-49b2-954a-62efa28de896', // Produto 1: Alfajor Tradicional
     'd72803b0-bf5a-417a-9bff-29e00bc28b4b', // Produto 6: Doce de Leite com Café
     'de89616b-5ca8-4582-8985-c91c80d68f57', // Produto 4: Kit 4 Queijos de Alagoa-MG
