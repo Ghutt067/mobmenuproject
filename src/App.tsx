@@ -18,6 +18,18 @@ function App() {
   const isIdentificationPage = location.pathname === '/checkout/identification';
   const isProductDetailsPage = location.pathname.startsWith('/product/');
 
+  // Garantir que o scroll está no topo ao carregar a aplicação
+  useEffect(() => {
+    // Se não há flag de navegação ativa, é primeira carga ou refresh - garantir que está no topo
+    if (!sessionStorage.getItem('navigationActive')) {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo(0, 0);
+      // Limpar posição salva se houver
+      sessionStorage.removeItem('homeScrollPosition');
+    }
+  }, []);
+
   // Manter flag de navegação ativa durante navegações internas
   useEffect(() => {
     // Se já existe uma flag de navegação ativa, manter
