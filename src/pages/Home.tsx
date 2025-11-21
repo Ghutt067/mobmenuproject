@@ -173,28 +173,46 @@ function Home() {
     };
   }, []);
 
-  // Salvar posição de scroll em tempo real enquanto está na Home
+  // Salvar posição de scroll com debounce otimizado
   useEffect(() => {
     if (location.pathname !== '/') return;
 
+    let scrollTimeout: ReturnType<typeof setTimeout>;
+    let lastSavedPosition = 0;
+
     const saveScrollPosition = () => {
       const scrollPosition = window.scrollY || document.documentElement.scrollTop;
-      // Sempre salvar a posição
-      if (scrollPosition > 0) {
+      
+      // Só salvar se mudou significativamente (mais de 50px) para reduzir I/O
+      if (Math.abs(scrollPosition - lastSavedPosition) > 50 && scrollPosition > 0) {
         sessionStorage.setItem('homeScrollPosition', scrollPosition.toString());
+        lastSavedPosition = scrollPosition;
       }
     };
 
-    // Salvar periodicamente enquanto o usuário rola
-    const scrollTimer = setInterval(saveScrollPosition, 300);
+    // Debounce: salvar apenas após 200ms sem scroll (reduz chamadas drasticamente)
+    const handleScroll = () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(saveScrollPosition, 200);
+    };
 
-    // Salvar também no evento de scroll
-    window.addEventListener('scroll', saveScrollPosition, { passive: true });
+    // Salvar também quando parar de rolar (usando requestIdleCallback se disponível)
+    const handleScrollEnd = () => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(saveScrollPosition, { timeout: 500 });
+      } else {
+        setTimeout(saveScrollPosition, 300);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScrollEnd, { passive: true, once: false });
 
     // Salvar quando o componente for desmontado (navegação para outra rota)
     return () => {
-      clearInterval(scrollTimer);
-      window.removeEventListener('scroll', saveScrollPosition);
+      clearTimeout(scrollTimeout);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleScrollEnd);
       // Salvar posição final quando sair da Home
       const finalScrollPosition = window.scrollY || document.documentElement.scrollTop;
       if (finalScrollPosition > 0) {
@@ -205,6 +223,13 @@ function Home() {
 
   // Controlar animação do modal
   useEffect(() => {
+    // Não mostrar modal se está vindo de "CONTINUAR COMPRA" - só mostrar depois que chegar no checkout
+    const comingFromContinuePurchase = sessionStorage.getItem('comingFromContinuePurchase');
+    if (comingFromContinuePurchase === 'true') {
+      // Aguardar navegação completar - não mostrar modal ainda
+      return;
+    }
+    
     if (hasItems()) {
       setIsExiting(false);
       setShowModal(true);
@@ -252,20 +277,21 @@ function Home() {
     }
   }, [location.pathname, isLoading, scrollRestored]);
 
-  // Filtrar produtos baseado no termo de busca
+  // Filtrar produtos baseado no termo de busca - otimizado
   const filteredProducts = useMemo(() => {
     if (!searchTerm.trim()) {
       return products;
     }
 
-    const searchUpper = searchTerm.toUpperCase();
+    const searchUpper = searchTerm.toUpperCase().trim();
+    // Usar includes ao invés de indexOf para melhor performance
     return products.filter((product) => {
-      const titleMatch = product.title.toUpperCase().indexOf(searchUpper) > -1;
-      const desc1Match = product.description1.toUpperCase().indexOf(searchUpper) > -1;
-      const desc2Match = product.description2.toUpperCase().indexOf(searchUpper) > -1;
-      const fullDescMatch = product.fullDescription?.toUpperCase().indexOf(searchUpper) > -1;
-      
-      return titleMatch || desc1Match || desc2Match || fullDescMatch;
+      return (
+        product.title.toUpperCase().includes(searchUpper) ||
+        product.description1.toUpperCase().includes(searchUpper) ||
+        product.description2.toUpperCase().includes(searchUpper) ||
+        (product.fullDescription?.toUpperCase().includes(searchUpper) ?? false)
+      );
     });
   }, [searchTerm, products]);
 

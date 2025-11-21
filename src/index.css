@@ -65,6 +65,15 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  /* Desabilitar seleção de texto e imagens em todo o site */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* Desabilitar callout no iOS (menu de contexto ao segurar) */
+  -webkit-touch-callout: none;
+  /* Remover highlight ao tocar em mobile */
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Esconder barra de scroll mas manter funcionalidade de scroll */
@@ -94,6 +103,15 @@ body {
   overflow-x: hidden;
   width: 100%;
   box-sizing: border-box;
+  /* Desabilitar seleção de texto e imagens */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* Desabilitar callout no iOS */
+  -webkit-touch-callout: none;
+  /* Remover highlight ao tocar */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body::-webkit-scrollbar {
@@ -107,4 +125,35 @@ body::-webkit-scrollbar {
   min-height: 100vh;
   overflow-x: hidden;
   box-sizing: border-box;
+  /* Desabilitar seleção de texto e imagens */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* Desabilitar callout no iOS */
+  -webkit-touch-callout: none;
+  /* Remover highlight ao tocar */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Garantir que imagens não possam ser selecionadas ou arrastadas */
+img {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+/* Permitir seleção apenas em inputs e textareas (necessário para funcionamento) */
+input,
+textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
 }

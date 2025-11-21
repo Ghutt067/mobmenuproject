@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { productImages } from '../data/products';
 import AddToCartPopup from './AddToCartPopup';
@@ -110,16 +110,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
     setIsPopupOpen(false);
   };
 
-  const formattedOldPrice = formatPrice(oldPrice);
-  const formattedNewPrice = formatPrice(newPrice);
+  const formattedOldPrice = useMemo(() => formatPrice(oldPrice), [oldPrice]);
+  const formattedNewPrice = useMemo(() => formatPrice(newPrice), [newPrice]);
 
-  const handleProductClick = () => {
+  const handleProductClick = useCallback(() => {
     // Salvar posição de scroll antes de navegar
     const scrollPosition = window.scrollY || document.documentElement.scrollTop;
     sessionStorage.setItem('homeScrollPosition', scrollPosition.toString());
     sessionStorage.setItem('navigationActive', 'true');
     navigate(`/product/${productId}`);
-  };
+  }, [productId, navigate]);
 
   const handleReadMoreClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -149,120 +149,57 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  // Ajustar máscara para última linha com texto real
+  // Ajustar máscara para última linha com texto real - OTIMIZADO
   useEffect(() => {
     if (isExpanded || !textContentRef.current || !teDRef.current) {
       return;
     }
 
+    // Função simplificada e otimizada - evita cálculos pesados de Range API
     const updateMaskPosition = () => {
       const textContent = textContentRef.current;
       const teD = teDRef.current;
       if (!textContent || !teD) return;
 
-      // Encontrar todos os elementos de texto
-      const textElements = Array.from(textContent.querySelectorAll('.product-description, .product-title')) as HTMLElement[];
-      
-      if (textElements.length === 0) return;
-
-      // Encontrar a última linha com conteúdo real
-      let lastLineBottom = 0;
-      const containerRect = textContent.getBoundingClientRect();
+      // Usar cálculo simples baseado na altura do container
+      // Evita TreeWalker e Range API que são muito pesados
       const maxHeight = parseFloat(getComputedStyle(textContent).maxHeight) || textContent.offsetHeight;
+      const actualHeight = textContent.scrollHeight;
       
-      // Percorrer elementos de trás para frente para encontrar o último com texto real
-      for (let i = textElements.length - 1; i >= 0; i--) {
-        const element = textElements[i];
-        const text = element.textContent || '';
-        
-        // Verificar se tem conteúdo real (letras ou números, não apenas espaços)
-        if (/\S/.test(text)) {
-          const rect = element.getBoundingClientRect();
-          const relativeTop = rect.top - containerRect.top;
-          const relativeBottom = rect.bottom - containerRect.top;
-          
-          // Se o elemento está dentro do limite de altura visível
-          if (relativeTop < maxHeight) {
-            // Se o elemento ultrapassa o limite, usar o limite
-            const visibleBottom = Math.min(relativeBottom, maxHeight);
-            
-            // Tentar encontrar a última linha visível do elemento usando Range API
-            try {
-              const range = document.createRange();
-              const walker = document.createTreeWalker(
-                element,
-                NodeFilter.SHOW_TEXT,
-                null
-              );
-              
-              let lastTextNode: Node | null = null;
-              let node: Node | null;
-              while (node = walker.nextNode()) {
-                if (node.textContent && /\S/.test(node.textContent)) {
-                  lastTextNode = node;
-                }
-              }
-              
-              if (lastTextNode && lastTextNode.textContent) {
-                const textContent = lastTextNode.textContent;
-                // Encontrar o último caractere não-whitespace
-                let lastCharIndex = textContent.length - 1;
-                while (lastCharIndex >= 0 && /\s/.test(textContent[lastCharIndex])) {
-                  lastCharIndex--;
-                }
-                
-                if (lastCharIndex >= 0) {
-                  range.setStart(lastTextNode, lastCharIndex);
-                  range.setEnd(lastTextNode, lastCharIndex + 1);
-                  const rects = range.getClientRects();
-                  
-                  if (rects.length > 0) {
-                    const lastRect = rects[rects.length - 1];
-                    const lineBottom = lastRect.bottom - containerRect.top;
-                    if (lineBottom <= maxHeight && lineBottom > lastLineBottom) {
-                      lastLineBottom = lineBottom;
-                      break; // Encontramos a última linha visível
-                    }
-                  }
-                }
-              }
-            } catch (e) {
-              // Fallback: usar o bottom visível do elemento
-            }
-            
-            // Se não encontramos com Range API, usar o bottom visível
-            if (lastLineBottom === 0 || visibleBottom < lastLineBottom) {
-              lastLineBottom = visibleBottom;
-            }
-            break; // Já encontramos o último elemento com texto
-          }
-        }
+      // Se o conteúdo cabe, não precisa de máscara
+      if (actualHeight <= maxHeight) {
+        teD.style.setProperty('--mask-start', '100%');
+        return;
       }
 
-      if (lastLineBottom > 0) {
-        // Colocar a máscara em 100%
-        teD.style.setProperty('--mask-start', '100%');
+      // Calcular posição da máscara de forma simples
+      // Usar 100% como padrão (máscara no final)
+      teD.style.setProperty('--mask-start', '100%');
+    };
+
+    // Usar requestIdleCallback se disponível, senão setTimeout
+    const scheduleUpdate = () => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(updateMaskPosition, { timeout: 200 });
       } else {
-        // Fallback: usar valor padrão
-        teD.style.setProperty('--mask-start', '100%');
+        setTimeout(updateMaskPosition, 100);
       }
     };
 
-    // Aguardar o próximo frame para garantir que o DOM foi renderizado
-    const timeoutId = setTimeout(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          updateMaskPosition();
-        });
-      });
-    }, 100);
+    scheduleUpdate();
 
-    // Recalcular quando a janela for redimensionada
-    window.addEventListener('resize', updateMaskPosition);
+    // Debounce resize para evitar muitas chamadas
+    let resizeTimeout: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(updateMaskPosition, 150);
+    };
+
+    window.addEventListener('resize', handleResize, { passive: true });
     
     return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('resize', updateMaskPosition);
+      clearTimeout(resizeTimeout);
+      window.removeEventListener('resize', handleResize);
     };
   }, [description1, description2, title, isExpanded]);
 
@@ -413,5 +350,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   );
 };
 
-export default ProductCard;
+// Memoizar componente para evitar re-renders desnecessários
+export default React.memo(ProductCard);
 

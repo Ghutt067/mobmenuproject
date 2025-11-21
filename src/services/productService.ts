@@ -1,5 +1,12 @@
 import { supabase } from '../lib/supabase';
 
+// Cache simples para produtos (evita múltiplas queries)
+let productsCache: Product[] | null = null;
+let productsCacheTime: number = 0;
+let setsCache: Set[] | null = null;
+let setsCacheTime: number = 0;
+const CACHE_DURATION = 60000; // 1 minuto de cache
+
 export interface Product {
   id: string;
   image: string;
@@ -68,6 +75,12 @@ export interface Subset {
 
 // Buscar todos os produtos (mantendo compatibilidade com estrutura atual)
 export async function getAllProducts(): Promise<Product[]> {
+  // Verificar cache
+  const now = Date.now();
+  if (productsCache && (now - productsCacheTime) < CACHE_DURATION) {
+    return productsCache;
+  }
+
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -79,7 +92,7 @@ export async function getAllProducts(): Promise<Product[]> {
     return [];
   }
 
-  return (data || []).map((product) => {
+  const mappedProducts = (data || []).map((product) => {
     const oldPrice = product.old_price || '';
     const newPrice = product.new_price;
     // Calcula automaticamente o desconto baseado nos preços
@@ -100,39 +113,53 @@ export async function getAllProducts(): Promise<Product[]> {
       forceBuyButton: product.force_buy_button || false,
     };
   });
+
+  // Atualizar cache
+  productsCache = mappedProducts;
+  productsCacheTime = now;
+
+  return mappedProducts;
 }
 
 // Buscar produtos agrupados por conjuntos e subconjuntos
 export async function getProductsGrouped(): Promise<Set[]> {
-  // Buscar conjuntos
-  const { data: sets, error: setsError } = await supabase
-    .from('sets')
-    .select('*')
-    .eq('is_active', true)
-    .order('display_order', { ascending: true });
+  // Verificar cache
+  const now = Date.now();
+  if (setsCache && (now - setsCacheTime) < CACHE_DURATION) {
+    return setsCache;
+  }
+
+  // Buscar conjuntos, subconjuntos e produtos em paralelo para melhor performance
+  const [setsResult, subsetsResult, productsResult] = await Promise.all([
+    supabase
+      .from('sets')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true }),
+    supabase
+      .from('subsets')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true }),
+    supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+  ]);
+
+  const { data: sets, error: setsError } = setsResult;
+  const { data: subsets, error: subsetsError } = subsetsResult;
+  const { data: products, error: productsError } = productsResult;
 
   if (setsError) {
     console.error('Error fetching sets:', setsError);
     return [];
   }
 
-  // Buscar subconjuntos
-  const { data: subsets, error: subsetsError } = await supabase
-    .from('subsets')
-    .select('*')
-    .eq('is_active', true)
-    .order('display_order', { ascending: true });
-
   if (subsetsError) {
     console.error('Error fetching subsets:', subsetsError);
   }
-
-  // Buscar produtos
-  const { data: products, error: productsError } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_active', true)
-    .order('display_order', { ascending: true });
 
   if (productsError) {
     console.error('Error fetching products:', productsError);
@@ -211,7 +238,23 @@ export async function getProductsGrouped(): Promise<Set[]> {
     }
   });
 
-  return Array.from(setsMap.values()).sort((a, b) => a.displayOrder - b.displayOrder);
+  const result = Array.from(setsMap.values()).sort((a, b) => a.displayOrder - b.displayOrder);
+  
+  // Atualizar cache
+  setsCache = result;
+  setsCacheTime = now;
+
+  return result;
+}
+
+/**
+ * Limpar cache (útil quando produtos são atualizados)
+ */
+export function clearProductsCache(): void {
+  productsCache = null;
+  productsCacheTime = 0;
+  setsCache = null;
+  setsCacheTime = 0;
 }
 
 /**

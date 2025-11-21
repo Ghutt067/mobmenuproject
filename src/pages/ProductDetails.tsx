@@ -94,9 +94,10 @@ function ProductDetails() {
   const handleContinue = () => {
     if (!product) return;
     setIsPopupOpen(false);
-    addToCart(product.id);
-    // Voltar para a Home após adicionar e ir para checkout
+    // Marcar que está vindo de "CONTINUAR COMPRA" - não ativar modal até chegar no checkout
+    sessionStorage.setItem('comingFromContinuePurchase', 'true');
     sessionStorage.setItem('navigationActive', 'true');
+    // Navegar imediatamente sem delay
     navigate(`/checkout/${product.id}`);
   };
 
@@ -104,6 +105,9 @@ function ProductDetails() {
     if (!product) return;
     addToCart(product.id);
     setIsPopupOpen(false);
+    // Voltar para a Home após adicionar (modo adicionar ao carrinho ativo)
+    sessionStorage.setItem('navigationActive', 'true');
+    navigate('/');
   };
 
   const handleClose = () => {

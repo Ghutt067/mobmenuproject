@@ -21,6 +21,8 @@ function Checkout() {
   const animationRef = useRef<number | null>(null);
   const previousTotalRef = useRef<string>('0,00');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isModalFirstAppearance, setIsModalFirstAppearance] = useState(false);
+  const previousCartLengthRef = useRef<number>(0);
   // IDs dos produtos que devem aparecer no "Peça também"
   // Ordem: Produto 1, Produto 6, Produto 4, Produto 2, Produto 5 (todos da seção 2 - COMPLEMENTOS)
   const [alsoOrderProductIds, setAlsoOrderProductIds] = useState<string[]>([
@@ -73,6 +75,8 @@ function Checkout() {
       if (product && quantity === 0) {
         addToCart(productId);
         autoAddedProductRef.current = productId;
+        // Remover flag após adicionar - agora o modo de adicionar ao carrinho pode ser ativado
+        sessionStorage.removeItem('comingFromContinuePurchase');
       }
     }
   }, [productId, products, getItemQuantity, addToCart]);
@@ -84,6 +88,34 @@ function Checkout() {
       return quantity > 0;
     });
   }, [products, cartItems, getItemQuantity]);
+
+  // Detectar quando o segundo produto é adicionado (animação do modal)
+  useEffect(() => {
+    const currentLength = cartProducts.length;
+    const previousLength = previousCartLengthRef.current;
+    
+    // Animar sempre que o segundo produto é adicionado (passa de 1 para 2)
+    if (currentLength === 2 && previousLength === 1) {
+      setIsModalFirstAppearance(true);
+      // Remover a classe de animação após a animação terminar
+      const timer = setTimeout(() => {
+        setIsModalFirstAppearance(false);
+      }, 400); // Duração da animação + um pouco mais
+      previousCartLengthRef.current = currentLength;
+      return () => clearTimeout(timer);
+    } else if (currentLength === 0) {
+      // Resetar quando o carrinho fica vazio
+      setIsModalFirstAppearance(false);
+      previousCartLengthRef.current = 0;
+    } else if (currentLength === 1 && previousLength > 1) {
+      // Quando volta para 1 produto (removeu produtos), resetar para permitir nova animação
+      setIsModalFirstAppearance(false);
+      previousCartLengthRef.current = currentLength;
+    } else {
+      // Atualizar referência do comprimento anterior
+      previousCartLengthRef.current = currentLength;
+    }
+  }, [cartProducts.length]);
 
   // Filtrar produtos para "Peça também" - mantém todos os produtos visíveis mesmo após adicionar ao carrinho
   // Mantém a ordem especificada no array alsoOrderProductIds
@@ -335,7 +367,7 @@ function Checkout() {
           </button>
         </div>
         {/* Lista de itens do carrinho */}
-        <div className="checkout-modal">
+        <div className={`checkout-modal ${isModalFirstAppearance ? 'modal-grow' : ''}`}>
           <div className={`checkout-items-wrapper ${isExpanded ? 'expanded' : ''} ${cartProducts.length === 1 ? 'single-item' : ''}`}>
             <div className="checkout-items">
               {cartProducts.map((product) => {

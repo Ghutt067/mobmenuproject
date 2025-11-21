@@ -28,6 +28,7 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLDivElement>(
     // Cleanup do observer anterior se existir
     if (observerRef.current) {
       observerRef.current.disconnect();
+      observerRef.current = null;
     }
 
     // Verificar se IntersectionObserver está disponível
@@ -37,22 +38,26 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLDivElement>(
       return;
     }
 
-    observerRef.current = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsIntersecting(true);
-          if (triggerOnce && observerRef.current) {
-            observerRef.current.disconnect();
+    // Criar observer apenas uma vez e reutilizar
+    if (!observerRef.current) {
+      observerRef.current = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setIsIntersecting(true);
+            if (triggerOnce && observerRef.current) {
+              observerRef.current.disconnect();
+              observerRef.current = null;
+            }
+          } else if (!triggerOnce) {
+            setIsIntersecting(false);
           }
-        } else if (!triggerOnce) {
-          setIsIntersecting(false);
+        },
+        {
+          threshold,
+          rootMargin,
         }
-      },
-      {
-        threshold,
-        rootMargin,
-      }
-    );
+      );
+    }
 
     observerRef.current.observe(element);
 

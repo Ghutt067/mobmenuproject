@@ -6,6 +6,8 @@ import closeIcon from '../icons/close-svgrepo-com.svg';
 import searchIcon from '../icons/search-alt-2-svgrepo-com.svg';
 import basketIcon from '../icons/basket-svgrepo-com.svg';
 import { useSearch } from '../contexts/SearchContext';
+import AboutModal from './AboutModal';
+import ContactModal from './ContactModal';
 import './Header.css';
 
 const Header: React.FC = () => {
@@ -13,6 +15,10 @@ const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isOverlayExiting, setIsOverlayExiting] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [isAboutExiting, setIsAboutExiting] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
+  const [isContactExiting, setIsContactExiting] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -75,6 +81,54 @@ const Header: React.FC = () => {
     navigate('/cart');
   };
 
+  const handleAboutClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    handleMenuClose();
+    // Fechar pesquisa se estiver aberta
+    if (isSearchOpen) {
+      setIsSearchOpen(false);
+      setSearchTerm('');
+    }
+    setIsAboutOpen(true);
+    setIsAboutExiting(false);
+    // Prevenir scroll do body quando modal estiver aberto
+    document.body.style.overflow = 'hidden';
+  };
+
+  const handleAboutClose = () => {
+    setIsAboutExiting(true);
+    // Restaurar scroll do body
+    document.body.style.overflow = '';
+    setTimeout(() => {
+      setIsAboutOpen(false);
+      setIsAboutExiting(false);
+    }, 300); // Duração da animação de saída
+  };
+
+  const handleContactClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    handleMenuClose();
+    // Fechar pesquisa se estiver aberta
+    if (isSearchOpen) {
+      setIsSearchOpen(false);
+      setSearchTerm('');
+    }
+    setIsContactOpen(true);
+    setIsContactExiting(false);
+    // Prevenir scroll do body quando modal estiver aberto
+    document.body.style.overflow = 'hidden';
+  };
+
+  const handleContactClose = () => {
+    setIsContactExiting(true);
+    // Restaurar scroll do body
+    document.body.style.overflow = '';
+    setTimeout(() => {
+      setIsContactOpen(false);
+      setIsContactExiting(false);
+    }, 300); // Duração da animação de saída
+  };
+
   return (
     <header className="header">
       <div className="header-container">
@@ -93,10 +147,10 @@ const Header: React.FC = () => {
         
         <ul id="menu" className={`menu ${isMenuOpen ? 'open' : ''}`}>
           <li>
-            <a href="#about" onClick={handleMenuClose}>Quem Somos</a>
+            <a href="#about" onClick={handleAboutClick}>Quem Somos</a>
           </li>
           <li>
-            <a href="#contact" onClick={handleMenuClose}>Contato</a>
+            <a href="#contact" onClick={handleContactClick}>Contato</a>
           </li>
           <li className="cart-menu-item">
             <a href="#cart" onClick={handleCartClick} className="cart-link">
@@ -140,6 +194,8 @@ const Header: React.FC = () => {
           )}
         </button>
       </div>
+      <AboutModal isOpen={isAboutOpen} isExiting={isAboutExiting} onClose={handleAboutClose} />
+      <ContactModal isOpen={isContactOpen} isExiting={isContactExiting} onClose={handleContactClose} />
     </header>
   );
 };
