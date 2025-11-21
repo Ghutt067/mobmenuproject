@@ -18,6 +18,13 @@
   overflow-x: hidden;
 }
 
+/* Remover position fixed em resoluções de desktop */
+@media (min-width: 768px) {
+  .fixed-header {
+    position: relative;
+  }
+}
+
 .main-content {
   padding: 30px 16px 40px;
   background-color: #FFFFFF;
@@ -114,9 +121,15 @@
   .main-content {
     max-width: 768px;
     margin: 0 auto;
-    padding: 40px 24px;
+    padding: 0 24px 40px;
     width: 100%;
     box-sizing: border-box;
+  }
+  
+  /* Primeira seção ou primeiro título deve ter o mesmo espaçamento que entre seções (30px) */
+  .main-content > .product-section:first-child,
+  .main-content > .section-title:first-child {
+    margin-top: 30px;
   }
   
   .products-grid {
@@ -130,7 +143,7 @@
 @media (min-width: 1024px) {
   .main-content {
     max-width: 1024px;
-    padding: 40px 32px;
+    padding: 0 32px 40px;
   }
   
   .products-grid {
@@ -143,7 +156,7 @@
 @media (min-width: 1440px) {
   .main-content {
     max-width: 1440px;
-    padding: 40px 40px;
+    padding: 0 40px 40px;
   }
   
   .products-grid {

@@ -267,3 +267,35 @@
   border-radius: 8px;
 }
 
+/* Ajustes para desktop - header menor */
+@media (min-width: 768px) {
+  .header {
+    transition: background-color 0.3s ease;
+  }
+  
+  .logo-image {
+    max-height: 80px;
+    object-fit: contain;
+    width: auto;
+    margin: 0 auto;
+    display: block;
+  }
+  
+  .logo-container {
+    padding: 10px 0;
+  }
+  
+  .menu-btn,
+  .search-btn {
+    top: 12px;
+  }
+  
+  .menu-btn {
+    left: 12px;
+  }
+  
+  .search-btn {
+    right: 12px;
+  }
+}
+

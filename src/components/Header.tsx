@@ -19,7 +19,9 @@ const Header: React.FC = () => {
   const [isAboutExiting, setIsAboutExiting] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isContactExiting, setIsContactExiting] = useState(false);
+  const [borderColor, setBorderColor] = useState<string>('#FFFFFF');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
 
   const handleSearchClick = () => {
@@ -55,6 +57,124 @@ const Header: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [isMenuOpen, showOverlay]);
+
+  // Detectar cor da borda da imagem do logo e aplicar no header (desktop)
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+      return;
+    }
+
+    const detectBorderColor = () => {
+      // Aguardar a imagem estar no DOM
+      const logoImg = document.querySelector('.logo-image') as HTMLImageElement;
+      if (!logoImg) {
+        return;
+      }
+
+      const processImage = (imageSrc: string) => {
+        const img = new Image();
+        
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            // Amostrar pixels das bordas (topo, baixo, esquerda, direita)
+            const sampleSize = Math.max(1, Math.floor(Math.min(img.width, img.height) * 0.05));
+            const pixels: number[] = [];
+            
+            // Topo
+            for (let x = 0; x < img.width; x += sampleSize) {
+              const pixelData = ctx.getImageData(x, 0, 1, 1).data;
+              pixels.push(pixelData[0], pixelData[1], pixelData[2]);
+            }
+            
+            // Baixo
+            for (let x = 0; x < img.width; x += sampleSize) {
+              const pixelData = ctx.getImageData(x, img.height - 1, 1, 1).data;
+              pixels.push(pixelData[0], pixelData[1], pixelData[2]);
+            }
+            
+            // Esquerda
+            for (let y = 0; y < img.height; y += sampleSize) {
+              const pixelData = ctx.getImageData(0, y, 1, 1).data;
+              pixels.push(pixelData[0], pixelData[1], pixelData[2]);
+            }
+            
+            // Direita
+            for (let y = 0; y < img.height; y += sampleSize) {
+              const pixelData = ctx.getImageData(img.width - 1, y, 1, 1).data;
+              pixels.push(pixelData[0], pixelData[1], pixelData[2]);
+            }
+
+            // Calcular média das cores
+            let r = 0, g = 0, b = 0;
+            const count = pixels.length / 3;
+            if (count > 0) {
+              for (let i = 0; i < pixels.length; i += 3) {
+                r += pixels[i];
+                g += pixels[i + 1];
+                b += pixels[i + 2];
+              }
+              
+              r = Math.round(r / count);
+              g = Math.round(g / count);
+              b = Math.round(b / count);
+              
+              const color = `rgb(${r}, ${g}, ${b})`;
+              setBorderColor(color);
+              
+              // Aplicar cor no header apenas em desktop
+              if (window.innerWidth >= 768 && headerRef.current) {
+                headerRef.current.style.backgroundColor = color;
+              }
+            }
+          } catch (error) {
+            console.error('Erro ao detectar cor da borda:', error);
+          }
+        };
+        
+        img.onerror = () => {
+          console.error('Erro ao carregar imagem do logo');
+        };
+        
+        img.src = imageSrc;
+      };
+
+      // Se a imagem já está carregada, processar imediatamente
+      if (logoImg.complete && logoImg.naturalWidth > 0) {
+        processImage(logoImg.src);
+      } else {
+        // Aguardar o carregamento da imagem
+        logoImg.addEventListener('load', () => {
+          processImage(logoImg.src);
+        }, { once: true });
+      }
+    };
+
+    // Aguardar um pouco para garantir que o DOM está pronto
+    const timer = setTimeout(detectBorderColor, 300);
+    
+    // Re-detectar ao redimensionar
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        detectBorderColor();
+      } else if (headerRef.current) {
+        headerRef.current.style.backgroundColor = '#FFFFFF';
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Focar o input quando a pesquisa abrir
   useEffect(() => {
@@ -130,7 +250,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="header">
+    <header className="header" ref={headerRef}>
       <div className="header-container">
         <button
           id="menu-toggle"

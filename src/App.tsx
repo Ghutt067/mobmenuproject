@@ -44,11 +44,20 @@ function App() {
 
     const updatePadding = () => {
       if (headerRef.current) {
-        const headerHeight = headerRef.current.offsetHeight;
         const mainContent = document.querySelector('.main-content, .cart-content') as HTMLElement;
         if (mainContent) {
+          // Verificar se estamos em resolução de desktop (>= 768px)
+          const isDesktop = window.innerWidth >= 768;
+          
+          if (isDesktop) {
+            // Em desktop, o header não é fixo, então não precisa de padding extra
+            mainContent.style.paddingTop = '';
+          } else {
+            // Em mobile, o header é fixo, então precisa de padding
+            const headerHeight = headerRef.current.offsetHeight;
           const paddingTop = isSearchOpen ? `${headerHeight + 10}px` : `${headerHeight + 30}px`;
           mainContent.style.paddingTop = paddingTop;
+          }
         }
       }
     };

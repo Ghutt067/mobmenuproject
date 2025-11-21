@@ -20,6 +20,7 @@ function Identification() {
   const cartDropdownRef = useRef<HTMLDivElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
   const emailDropdownRef = useRef<HTMLDivElement>(null);
+  const cepInputRef = useRef<HTMLInputElement>(null);
   const [isEmailDropdownOpen, setIsEmailDropdownOpen] = useState(false);
   const [isEmailDropdownClosing, setIsEmailDropdownClosing] = useState(false);
   const [formData, setFormData] = useState({
@@ -244,6 +245,10 @@ function Identification() {
       // Buscar CEP quando tiver 8 dígitos
       if (limitedNumbers.length === 8) {
         fetchCEP(limitedNumbers);
+        // Fazer blur para esconder o teclado do celular
+        setTimeout(() => {
+          cepInputRef.current?.blur();
+        }, 100);
       } else {
         // Limpar dados do CEP se não tiver 8 dígitos
         setCepData(null);
@@ -765,6 +770,7 @@ function Identification() {
 
                 <div className="identification-input-group">
                   <input
+                    ref={cepInputRef}
                     type="text"
                     name="cep"
                     className={`identification-input ${cepError ? 'identification-input-error' : ''}`}
