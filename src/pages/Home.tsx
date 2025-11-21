@@ -20,10 +20,20 @@ function Home() {
   const [scrollRestored, setScrollRestored] = useState(false);
   const hasRestoredScroll = useRef(false);
 
-  // Desabilitar scroll automático do browser
+  // Desabilitar scroll automático do browser e garantir topo na primeira carga
   useEffect(() => {
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
+    }
+    
+    // PRIMEIRA CARGA: Se não há flag de navegação ativa, garantir que está no topo
+    // Isso previne que posições salvas antigas ou comportamento do browser causem scroll inicial
+    const isNavigationActive = sessionStorage.getItem('navigationActive');
+    if (!isNavigationActive) {
+      // Forçar scroll para o topo imediatamente na primeira carga
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo(0, 0);
     }
     
     // Cleanup: remover flag quando a página for fechada
@@ -43,22 +53,27 @@ function Home() {
     hasRestoredScroll.current = false;
     setScrollRestored(false);
     
-    // Verificar se é um refresh ou navegação interna
+    // Verificar se é um refresh ou primeira carga
     const isNavigationActive = sessionStorage.getItem('navigationActive');
     const savedScrollPosition = sessionStorage.getItem('homeScrollPosition');
     
-    // Se não há flag de navegação ativa, é refresh/primeira carga - SEMPRE ir para o topo
+    // PRIMEIRA CARGA: Se não há flag de navegação ativa, é refresh/reload ou primeira visita
+    // Neste caso, SEMPRE ir para o topo (limpar qualquer posição salva antiga)
     if (!isNavigationActive) {
-      // É um refresh/reload/primeira carga - ir para o topo e limpar posição salva (se houver)
+      // Limpar posição salva se existir (pode ser de sessão anterior que ficou no storage)
+      if (savedScrollPosition) {
+        sessionStorage.removeItem('homeScrollPosition');
+      }
+      // Ir para o topo de forma síncrona
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
       window.scrollTo(0, 0);
-      sessionStorage.removeItem('homeScrollPosition'); // Limpar posição salva antiga
       hasRestoredScroll.current = true;
-      // Mostrar conteúdo imediatamente no refresh
+      // Mostrar conteúdo imediatamente na primeira carga
       setScrollRestored(true);
-    } else if (isNavigationActive && savedScrollPosition) {
-      // Há flag de navegação ativa E posição salva - é navegação interna, restaurar scroll
+    } else if (savedScrollPosition) {
+      // NAVEGAÇÃO INTERNA: Há flag de navegação ativa E posição salva
+      // Restaurar scroll ANTES de mostrar o conteúdo
       const scrollPos = parseInt(savedScrollPosition, 10);
       
       if (!isNaN(scrollPos) && scrollPos > 0) {
@@ -109,8 +124,12 @@ function Home() {
       setScrollRestored(true);
     }
     
-    // Sempre marcar que a navegação está ativa (para próximas navegações)
-    sessionStorage.setItem('navigationActive', 'true');
+    // Marcar que a navegação está ativa APENAS após o primeiro carregamento
+    // Isso garante que na próxima vez que voltar de outra página, a flag já exista
+    if (!isNavigationActive) {
+      // Primeira vez - marcar que agora a navegação está ativa (para próximas navegações)
+      sessionStorage.setItem('navigationActive', 'true');
+    }
   }, [location.pathname]);
 
   // Buscar produtos do banco de dados com priorização

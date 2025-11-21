@@ -19,14 +19,17 @@ function App() {
   const isProductDetailsPage = location.pathname.startsWith('/product/');
 
   // Manter flag de navegação ativa durante navegações internas
+  // NOTA: NÃO criar a flag automaticamente baseado em posição salva,
+  // pois pode ser uma posição antiga de sessão anterior.
+  // A flag deve ser criada apenas durante navegações internas (no Home.tsx)
   useEffect(() => {
-    // Se já existe uma flag de navegação ativa, garantir que continue ativa
-    // A flag é setada antes de navegar pelas páginas (Cart, Checkout, ProductDetails)
+    // Se já existe uma flag de navegação ativa, manter ativa
     if (sessionStorage.getItem('navigationActive')) {
+      // Flag já existe, garantir que continue ativa
       sessionStorage.setItem('navigationActive', 'true');
     }
-    // Se não há flag, significa que é refresh/primeira carga
-    // O Home.tsx vai detectar isso e ir para o topo
+    // Se não há flag, não fazer nada - deixar o Home.tsx gerenciar
+    // (Home.tsx vai criar a flag após a primeira carga ser processada)
   }, [location.pathname]);
 
   useEffect(() => {
