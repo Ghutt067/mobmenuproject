@@ -23,6 +23,7 @@ function Checkout() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isModalFirstAppearance, setIsModalFirstAppearance] = useState(false);
   const previousCartLengthRef = useRef<number>(0);
+  const [isModalElasticBounce, setIsModalElasticBounce] = useState(false);
   // IDs dos produtos que devem aparecer no "Peça também"
   // Ordem: Produto 1, Produto 6, Produto 4, Produto 2, Produto 5 (todos da seção 2 - COMPLEMENTOS)
   const [alsoOrderProductIds] = useState<string[]>([
@@ -222,19 +223,40 @@ function Checkout() {
   }, [cartTotal]);
 
   const handleAddClick = (productId: string) => {
+    // Verificar ANTES de adicionar quantos produtos já estão no carrinho
+    const currentLength = cartProducts.length;
+    const isAddingSecondProduct = (currentLength === 1); // Se tinha 1, agora terá 2
+    
     addToCart(productId);
+    
+    // Verificar se o produto adicionado é do "Peça também"
+    const isAlsoOrderProduct = alsoOrderProductIds.includes(productId);
+    
     // Adicionar animação de escala
     setAnimatingQuantities((prev) => {
       const newSet = new Set(prev);
       newSet.add(productId);
       return newSet;
     });
+    
+    // Remover animação de escala após terminar (300ms é a duração da animação)
     setTimeout(() => {
       setAnimatingQuantities((prev) => {
         const newSet = new Set(prev);
         newSet.delete(productId);
         return newSet;
       });
+      
+      // DEPOIS que a animação de escala terminar, se for produto do "Peça também"
+      // E NÃO for o segundo produto sendo adicionado (não deve acontecer quando passa de 1 para 2)
+      if (isAlsoOrderProduct && !isAddingSecondProduct) {
+        // Iniciar animação elástica imediatamente após a animação de escala terminar
+        setIsModalElasticBounce(true);
+        // Remover a classe após a animação elástica terminar (600ms = duração da animação)
+        setTimeout(() => {
+          setIsModalElasticBounce(false);
+        }, 600);
+      }
     }, 300);
   };
 
@@ -374,7 +396,7 @@ function Checkout() {
           </button>
         </div>
         {/* Lista de itens do carrinho */}
-        <div className={`checkout-modal ${isModalFirstAppearance ? 'modal-grow' : ''}`}>
+        <div className={`checkout-modal ${isModalFirstAppearance ? 'modal-grow' : ''} ${isModalElasticBounce ? 'modal-elastic-bounce' : ''}`}>
           <div className={`checkout-items-wrapper ${isExpanded ? 'expanded' : ''} ${cartProducts.length === 1 ? 'single-item' : ''}`}>
             <div className="checkout-items">
               {cartProducts.map((product) => {
