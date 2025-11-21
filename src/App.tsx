@@ -8,6 +8,16 @@ import Cart from './pages/Cart';
 import Identification from './pages/Identification';
 import ProductDetails from './pages/ProductDetails';
 import { useSearch } from './contexts/SearchContext';
+
+// Páginas Admin
+import AdminLogin from './pages/admin/Login';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminProducts from './pages/admin/Products';
+import AdminSections from './pages/admin/Sections';
+import AdminCustomization from './pages/admin/Customization';
+import AdminSettings from './pages/admin/Settings';
+import ProtectedRoute from './components/ProtectedRoute';
+
 import './App.css';
 
 function App() {
@@ -17,6 +27,7 @@ function App() {
   const isCheckoutPage = location.pathname.startsWith('/checkout');
   const isIdentificationPage = location.pathname === '/checkout/identification';
   const isProductDetailsPage = location.pathname.startsWith('/product/');
+  const isAdminPage = location.pathname.startsWith('/admin');
 
   // Manter flag de navegação ativa durante navegações internas
   // NOTA: NÃO criar a flag automaticamente baseado em posição salva,
@@ -33,8 +44,8 @@ function App() {
   }, [location.pathname]);
 
   useEffect(() => {
-    // Não atualizar padding na página de checkout ou detalhes do produto - mantém o padding do CSS
-    if (isCheckoutPage || isProductDetailsPage) {
+    // Não atualizar padding em páginas especiais
+    if (isCheckoutPage || isProductDetailsPage || isAdminPage) {
       return;
     }
 
@@ -91,7 +102,7 @@ function App() {
   return (
     <div className="app">
       {/* RÓTULO: Header com ícones e logo + Banner promocional */}
-      {!isCheckoutPage && !isIdentificationPage && !isProductDetailsPage && (
+      {!isCheckoutPage && !isIdentificationPage && !isProductDetailsPage && !isAdminPage && (
         <div className="fixed-header" ref={headerRef}>
           <Header />
           {!isSearchOpen && <PromoBanner />}
@@ -100,11 +111,55 @@ function App() {
       
       {/* Rotas */}
       <Routes>
+        {/* Rotas Públicas (Loja) */}
         <Route path="/" element={<Home />} />
         <Route path="/product/:productId" element={<ProductDetails />} />
         <Route path="/checkout/identification" element={<Identification />} />
         <Route path="/checkout/:productId?" element={<Checkout />} />
         <Route path="/cart" element={<Cart />} />
+        
+        {/* Rotas Admin (Protegidas) */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/produtos"
+          element={
+            <ProtectedRoute>
+              <AdminProducts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/secoes"
+          element={
+            <ProtectedRoute>
+              <AdminSections />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/personalizacao"
+          element={
+            <ProtectedRoute>
+              <AdminCustomization />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/configuracoes"
+          element={
+            <ProtectedRoute>
+              <AdminSettings />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </div>
   );

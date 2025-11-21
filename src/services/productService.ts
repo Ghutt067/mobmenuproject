@@ -74,18 +74,25 @@ export interface Subset {
 }
 
 // Buscar todos os produtos (mantendo compatibilidade com estrutura atual)
-export async function getAllProducts(): Promise<Product[]> {
-  // Verificar cache
+export async function getAllProducts(storeId?: string): Promise<Product[]> {
+  // Verificar cache (se tiver storeId, incluir no cache)
+  const cacheKey = storeId || 'default';
   const now = Date.now();
   if (productsCache && (now - productsCacheTime) < CACHE_DURATION) {
     return productsCache;
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('products')
     .select('*')
-    .eq('is_active', true)
-    .order('display_order', { ascending: true });
+    .eq('is_active', true);
+  
+  // Filtrar por loja se storeId for fornecido
+  if (storeId) {
+    query = query.eq('store_id', storeId);
+  }
+  
+  const { data, error } = await query.order('display_order', { ascending: true });
 
   if (error) {
     console.error('Error fetching products:', error);
@@ -122,30 +129,41 @@ export async function getAllProducts(): Promise<Product[]> {
 }
 
 // Buscar produtos agrupados por conjuntos e subconjuntos
-export async function getProductsGrouped(): Promise<Set[]> {
+export async function getProductsGrouped(storeId?: string): Promise<Set[]> {
   // Verificar cache
   const now = Date.now();
   if (setsCache && (now - setsCacheTime) < CACHE_DURATION) {
     return setsCache;
   }
 
+  // Criar queries base
+  let setsQuery = supabase
+    .from('sets')
+    .select('*')
+    .eq('is_active', true);
+  
+  let subsetsQuery = supabase
+    .from('subsets')
+    .select('*')
+    .eq('is_active', true);
+  
+  let productsQuery = supabase
+    .from('products')
+    .select('*')
+    .eq('is_active', true);
+  
+  // Filtrar por loja se storeId for fornecido
+  if (storeId) {
+    setsQuery = setsQuery.eq('store_id', storeId);
+    subsetsQuery = subsetsQuery.eq('store_id', storeId);
+    productsQuery = productsQuery.eq('store_id', storeId);
+  }
+
   // Buscar conjuntos, subconjuntos e produtos em paralelo para melhor performance
   const [setsResult, subsetsResult, productsResult] = await Promise.all([
-    supabase
-      .from('sets')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true }),
-    supabase
-      .from('subsets')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true }),
-    supabase
-      .from('products')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
+    setsQuery.order('display_order', { ascending: true }),
+    subsetsQuery.order('display_order', { ascending: true }),
+    productsQuery.order('display_order', { ascending: true })
   ]);
 
   const { data: sets, error: setsError } = setsResult;

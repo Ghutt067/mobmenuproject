@@ -1,0 +1,15 @@
+.sections-admin-page h1 {
+  margin: 0 0 8px 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.sections-admin-page .subtitle {
+  margin: 0 0 30px 0;
+  font-size: 16px;
+  color: #666;
+}
+
+/* Reutilizando estilos do Products.css */
+

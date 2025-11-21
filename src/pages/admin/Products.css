@@ -1,0 +1,85 @@
+.products-admin-page h1 {
+  margin: 0 0 8px 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.products-admin-page .subtitle {
+  margin: 0 0 30px 0;
+  font-size: 16px;
+  color: #666;
+}
+
+.coming-soon {
+  background: white;
+  border-radius: 12px;
+  padding: 60px 40px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.coming-soon-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+}
+
+.coming-soon h2 {
+  margin: 0 0 16px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.coming-soon > p {
+  margin: 0 0 40px 0;
+  font-size: 16px;
+  color: #666;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.features-list {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 30px;
+  margin: 30px auto;
+  max-width: 500px;
+  text-align: left;
+}
+
+.features-list h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-align: center;
+}
+
+.features-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.features-list li {
+  padding: 8px 0;
+  font-size: 15px;
+  color: #555;
+}
+
+.temp-note {
+  margin-top: 30px;
+  padding: 16px 20px;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #856404;
+}
+
+.temp-note strong {
+  font-weight: 700;
+}
+

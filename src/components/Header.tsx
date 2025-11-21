@@ -6,12 +6,14 @@ import closeIcon from '../icons/close-svgrepo-com.svg';
 import searchIcon from '../icons/search-alt-2-svgrepo-com.svg';
 import basketIcon from '../icons/basket-svgrepo-com.svg';
 import { useSearch } from '../contexts/SearchContext';
+import { useStore } from '../contexts/StoreContext';
 import AboutModal from './AboutModal';
 import ContactModal from './ContactModal';
 import './Header.css';
 
 const Header: React.FC = () => {
   const { setSearchTerm, isSearchOpen, setIsSearchOpen } = useSearch();
+  const { store } = useStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isOverlayExiting, setIsOverlayExiting] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
@@ -23,6 +25,10 @@ const Header: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
+  
+  // Usar logo customizado se existir, senão usar o padrão
+  const currentLogoUrl = store?.customizations?.logoUrl || logoImage;
+  const logoAlt = store?.customizations?.logoAltText || store?.name || 'Logo';
 
   const handleSearchClick = () => {
     setIsSearchOpen(!isSearchOpen);
@@ -285,7 +291,7 @@ const Header: React.FC = () => {
         )}
         
         <div className={`logo-container ${isSearchOpen ? 'hidden' : ''}`}>
-          <img src={logoImage} alt="FÉQUEIJÃO Logo" className="logo-image" />
+          <img src={currentLogoUrl} alt={logoAlt} className="logo-image" />
         </div>
         
         <div className={`search-container ${isSearchOpen ? 'expanded' : ''}`}>

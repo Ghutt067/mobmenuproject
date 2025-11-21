@@ -4,6 +4,7 @@ import ProductCard from '../components/ProductCard';
 import { getAllProducts, getProductsGrouped, type Product, type Set } from '../services/productService';
 import { useSearch } from '../contexts/SearchContext';
 import { useCart } from '../contexts/CartContext';
+import { useStore } from '../contexts/StoreContext';
 import CartBottomModal from '../components/CartBottomModal';
 import '../App.css';
 
@@ -12,6 +13,7 @@ function Home() {
   const location = useLocation();
   const { searchTerm, isSearchOpen } = useSearch();
   const { hasItems } = useCart();
+  const { store } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [productSets, setProductSets] = useState<Set[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -138,8 +140,8 @@ function Home() {
     
     const fetchProducts = async () => {
       try {
-        // Buscar produtos agrupados por sets
-        const sets = await getProductsGrouped();
+        // Buscar produtos agrupados por sets (filtrado por loja)
+        const sets = await getProductsGrouped(store?.id);
         
         // Verificar se o componente ainda está montado antes de atualizar
         if (isMounted) {
@@ -162,9 +164,9 @@ function Home() {
             });
             setProducts(allProducts);
           } else {
-            // Se não há sets, usar getAllProducts como fallback
-            const data = await getAllProducts();
-          setProducts(data);
+            // Se não há sets, usar getAllProducts como fallback (filtrado por loja)
+            const data = await getAllProducts(store?.id);
+            setProducts(data);
             setProductSets([]);
           }
           
