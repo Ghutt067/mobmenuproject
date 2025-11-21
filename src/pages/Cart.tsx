@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useSearch } from '../contexts/SearchContext';
@@ -18,6 +18,13 @@ function Cart() {
   const [isLoading, setIsLoading] = useState(true);
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
   const [animatingQuantities, setAnimatingQuantities] = useState<Set<string>>(new Set());
+
+  // Garantir que a página sempre abre no topo
+  useLayoutEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleBackClick = () => {
     // Garantir que a flag de navegação ativa esteja setada antes de voltar

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useSearch } from '../contexts/SearchContext';
@@ -57,6 +57,13 @@ function Identification() {
     'ig.com.br',
     'terra.com.br'
   ];
+
+  // Garantir que a página sempre abre no topo
+  useLayoutEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {

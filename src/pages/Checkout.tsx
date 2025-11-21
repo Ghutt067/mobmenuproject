@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { getAllProducts, type Product } from '../services/productService';
@@ -42,6 +42,13 @@ function Checkout() {
   const autoAddedProductRef = useRef<string | null>(null);
   // Flag para controlar se produtos foram manualmente removidos (não re-adicionar automaticamente)
   const manuallyRemovedProductsRef = useRef<Set<string>>(new Set());
+
+  // Garantir que a página sempre abre no topo
+  useLayoutEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {

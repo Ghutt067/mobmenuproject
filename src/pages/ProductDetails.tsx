@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { getAllProducts, type Product } from '../services/productService';
 import { productImages } from '../data/products';
@@ -20,6 +20,13 @@ function ProductDetails() {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [showFixedButton, setShowFixedButton] = useState(false);
   const buyButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Garantir que a página sempre abre no topo
+  useLayoutEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     const fetchProduct = async () => {
