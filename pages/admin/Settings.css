@@ -1,0 +1,481 @@
+.settings-page h1 {
+  margin: 0 0 8px 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.settings-page .subtitle {
+  margin: 0 0 30px 0;
+  font-size: 16px;
+  color: #666;
+}
+
+.settings-section {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.settings-section h2 {
+  margin: 0 0 24px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+}
+
+.info-item label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-item p {
+  margin: 0;
+  font-size: 16px;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.status-badge.active {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.access-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.url-display {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.url-display code {
+  flex: 1;
+  padding: 12px 16px;
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 14px;
+  color: #333;
+}
+
+.copy-button,
+.test-button {
+  padding: 10px 20px;
+  background-color: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.copy-button:hover,
+.test-button:hover {
+  background-color: #5568d3;
+}
+
+.test-button {
+  background-color: #28a745;
+}
+
+.test-button:hover {
+  background-color: #218838;
+}
+
+.info-hint {
+  margin: 0;
+  font-size: 13px;
+  color: #999;
+}
+
+.coming-soon-box {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.coming-soon-box p {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  color: #555;
+}
+
+.coming-soon-box ul {
+  margin: 0;
+  padding-left: 24px;
+  list-style: disc;
+}
+
+.coming-soon-box li {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .settings-page h1 {
+    font-size: 24px;
+  }
+
+  .settings-page .subtitle {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .settings-section {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .settings-section h2 {
+    font-size: 18px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .info-item label {
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+
+  .info-item p {
+    font-size: 15px;
+  }
+
+  .access-info {
+    gap: 10px;
+  }
+
+  .info-label {
+    font-size: 13px;
+  }
+
+  .url-display {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .url-display code {
+    padding: 14px 14px;
+    font-size: 13px;
+    word-break: break-all;
+  }
+
+  .copy-button {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  .info-hint {
+    font-size: 12px;
+  }
+
+  .coming-soon-box {
+    padding: 20px;
+  }
+
+  .coming-soon-box p {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  .coming-soon-box ul {
+    padding-left: 20px;
+  }
+
+  .coming-soon-box li {
+    font-size: 13px;
+    margin: 5px 0;
+  }
+}
+
+/* Estilos para seção de edição */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.section-header h2 {
+  margin: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.edit-button,
+.save-button,
+.cancel-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-button {
+  background-color: #667eea;
+  color: white;
+}
+
+.edit-button:hover {
+  background-color: #5568d3;
+}
+
+.save-button {
+  background-color: #28a745;
+  color: white;
+  margin-left: 12px;
+}
+
+.save-button:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancel-button {
+  background-color: #6c757d;
+  color: white;
+}
+
+.cancel-button:hover:not(:disabled) {
+  background-color: #5a6268;
+}
+
+.cancel-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-item label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: #666;
+  text-transform: none;
+  letter-spacing: normal;
+  font-style: italic;
+}
+
+.form-input,
+.form-textarea {
+  padding: 12px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #333;
+  background-color: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.info-value {
+  margin: 0;
+  font-size: 15px;
+  color: #1a1a1a;
+  font-weight: 500;
+  padding: 12px 0;
+  min-height: 20px;
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.alert-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .edit-actions {
+    width: 100%;
+  }
+
+  .save-button,
+  .cancel-button {
+    flex: 1;
+    margin-left: 0;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-page h1 {
+    font-size: 22px;
+  }
+
+  .settings-section {
+    padding: 16px;
+  }
+
+  .settings-section h2 {
+    font-size: 16px;
+  }
+
+  .info-grid {
+    gap: 16px;
+  }
+
+  .info-item label {
+    font-size: 11px;
+  }
+
+  .info-item p {
+    font-size: 14px;
+  }
+
+  .url-display code {
+    padding: 12px;
+    font-size: 12px;
+  }
+
+  .copy-button {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .coming-soon-box {
+    padding: 16px;
+  }
+
+  .coming-soon-box p {
+    font-size: 13px;
+  }
+
+  .coming-soon-box li {
+    font-size: 12px;
+  }
+
+  .form-input,
+  .form-textarea {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .edit-button,
+  .save-button,
+  .cancel-button {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}
+

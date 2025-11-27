@@ -1,0 +1,472 @@
+.admin-register-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  background: #1F1F1F;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.register-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.register-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.register-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.register-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.form-group label {
+  display: none;
+}
+
+.form-group input,
+.form-group input[type="password"],
+.form-group input[type="text"],
+.form-group input[type="email"]:not(.register-input-with-icon) {
+  width: 100% !important;
+  padding: 20px 16px !important;
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(0, 0, 0, 0.5) !important;
+  border-bottom-width: 2px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: rgba(0, 0, 0, 0.5) !important;
+  transition: all 0.2s !important;
+  box-sizing: border-box !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  font-family: inherit !important;
+  margin: 0 !important;
+  line-height: normal !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+}
+
+.form-group input:focus,
+.form-group input[type="password"]:focus,
+.form-group input[type="text"]:focus,
+.form-group input[type="email"]:focus,
+.register-input-with-icon:focus,
+.form-group input[type="email"].register-input-with-icon:focus,
+.form-group input[type="text"].register-input-with-icon:focus,
+.register-input-password:focus {
+  outline: none !important;
+  border-color: #000000 !important;
+  border-bottom-width: 2px !important;
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+}
+
+.form-group input:focus:not(:placeholder-shown),
+.form-group input[type="password"]:focus:not(:placeholder-shown),
+.form-group input[type="text"]:focus:not(:placeholder-shown),
+.form-group input[type="email"]:focus:not(:placeholder-shown) {
+  color: #000000 !important;
+}
+
+.form-group input:not(:placeholder-shown),
+.form-group input[type="password"]:not(:placeholder-shown),
+.form-group input[type="text"]:not(:placeholder-shown),
+.form-group input[type="email"]:not(:placeholder-shown),
+.register-input-with-icon:not(:placeholder-shown),
+.form-group input[type="email"].register-input-with-icon:not(:placeholder-shown),
+.form-group input[type="text"].register-input-with-icon:not(:placeholder-shown),
+.register-input-password:not(:placeholder-shown) {
+  color: #000000 !important;
+  background-color: #FFFFFF !important;
+}
+
+.form-group input::placeholder,
+.form-group input[type="password"]::placeholder,
+.form-group input[type="text"]::placeholder,
+.form-group input[type="email"]::placeholder {
+  color: rgba(0, 0, 0, 0.5) !important;
+  transition: opacity 0.2s !important;
+  opacity: 1 !important;
+}
+
+.register-input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #1F1F1F;
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: 2;
+  transition: opacity 0.2s;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.form-group:focus-within .register-input-icon {
+  opacity: 1;
+}
+
+.form-group input:not(:placeholder-shown) ~ .register-input-icon,
+.form-group:has(input:not(:placeholder-shown)) .register-input-icon {
+  opacity: 1;
+}
+
+.register-input-with-icon,
+.form-group input[type="email"].register-input-with-icon,
+.form-group input[type="text"].register-input-with-icon {
+  padding: 20px 16px 20px 48px !important;
+  position: relative;
+  z-index: 1;
+  width: 100% !important;
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(0, 0, 0, 0.5) !important;
+  border-bottom-width: 2px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: rgba(0, 0, 0, 0.5) !important;
+  transition: all 0.2s !important;
+  box-sizing: border-box !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  font-family: inherit !important;
+  margin: 0 !important;
+  line-height: normal !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+}
+
+.form-group:has(.register-input-icon) .form-group input:not(.register-input-with-icon) {
+  padding-left: 40px;
+}
+
+.form-group-password {
+  position: relative;
+}
+
+.register-input-password {
+  padding-right: 48px !important;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.form-group-password:focus-within .password-toggle {
+  opacity: 1;
+}
+
+.form-group-password:has(.register-input-password:not(:placeholder-shown)) .password-toggle {
+  opacity: 1;
+}
+
+.password-toggle:hover {
+  opacity: 1;
+}
+
+.password-toggle-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.form-group:focus-within input,
+.form-group:focus-within .register-input-with-icon,
+.form-group:focus-within input[type="email"].register-input-with-icon {
+  border-color: #000000 !important;
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+}
+
+.register-email-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
+  max-height: 242px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 1000;
+  margin-top: 4px;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.register-email-dropdown.closing {
+  opacity: 0;
+}
+
+.register-email-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.register-email-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.register-email-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+}
+
+.register-email-dropdown::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.register-email-suggestion {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px solid #E5E5E5;
+  text-align: left;
+  font-size: 14px;
+  color: #525866;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.register-email-suggestion:last-child {
+  border-bottom: none;
+}
+
+.register-email-suggestion:hover {
+  background-color: #F5F5F5;
+}
+
+.error-message {
+  padding: 12px 16px;
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  color: #c33;
+  font-size: 14px;
+}
+
+.register-button {
+  padding: 14px 24px;
+  background: #FF4D4D;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.register-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(255, 77, 77, 0.3);
+}
+
+.register-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.register-footer {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.register-footer p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.register-footer a {
+  color: #FF4D4D;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.register-footer a:hover {
+  color: #ff6666;
+}
+
+@media (max-width: 768px) {
+  .admin-register-page {
+    padding: 15px;
+  }
+
+  .register-container {
+    padding: 30px 24px;
+    max-width: 100%;
+  }
+
+  .register-header h1 {
+    font-size: 24px;
+  }
+
+  .register-subtitle {
+    font-size: 13px;
+  }
+
+  .form-group input,
+  .form-group input[type="password"],
+  .form-group input[type="text"],
+  .form-group input[type="email"]:not(.register-input-with-icon),
+  .register-input-with-icon {
+    padding: 18px 14px !important;
+    font-size: 16px !important; /* Evita zoom no iOS */
+  }
+
+  .register-input-with-icon {
+    padding: 18px 14px 18px 44px !important;
+  }
+
+  .register-input-icon {
+    left: 14px;
+    width: 18px;
+    height: 18px;
+  }
+
+  .register-button {
+    padding: 16px 24px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-register-page {
+    padding: 15px;
+    align-items: center;
+  }
+
+  .register-container {
+    padding: 24px 20px;
+    border-radius: 8px;
+  }
+
+  .register-header {
+    margin-bottom: 24px;
+  }
+
+  .register-header h1 {
+    font-size: 22px;
+  }
+
+  .register-subtitle {
+    font-size: 12px;
+  }
+
+  .register-form {
+    gap: 8px;
+  }
+
+  .form-group input,
+  .form-group input[type="password"],
+  .form-group input[type="text"],
+  .form-group input[type="email"]:not(.register-input-with-icon),
+  .register-input-with-icon {
+    padding: 16px 12px !important;
+    font-size: 16px !important;
+  }
+
+  .register-input-with-icon {
+    padding: 16px 12px 16px 40px !important;
+  }
+
+  .register-input-icon {
+    left: 12px;
+    width: 16px;
+    height: 16px;
+  }
+
+  .register-input-password {
+    padding-right: 44px !important;
+  }
+
+  .password-toggle {
+    right: 12px;
+  }
+
+  .password-toggle-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .register-email-dropdown {
+    max-height: 200px;
+  }
+
+  .register-email-suggestion {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .register-button {
+    padding: 14px 20px;
+    font-size: 15px;
+  }
+
+  .register-footer {
+    margin-top: 16px;
+  }
+
+  .register-footer p {
+    font-size: 13px;
+  }
+}
+

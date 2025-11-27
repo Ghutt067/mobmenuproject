@@ -1,0 +1,166 @@
+.app {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--store-background-color, #FFFFFF);
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.fixed-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-width: 100%;
+  z-index: 1000;
+  background-color: var(--store-background-color, #FFFFFF);
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* Remover position fixed em resoluções de desktop */
+@media (min-width: 768px) {
+  .fixed-header {
+    position: relative;
+  }
+}
+
+.main-content {
+  padding: 30px 16px 40px;
+  background-color: var(--store-background-color, #FFFFFF);
+  max-width: 100%;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.main-content.with-cart-modal {
+  padding: 30px 16px 100px 16px;
+}
+
+/* Ocultar conteúdo até que o scroll seja restaurado para evitar "pulo" visual */
+.main-content.restoring-scroll {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  /* Sem transição para aparecer instantaneamente quando o scroll for restaurado */
+}
+
+.main-content:not(.restoring-scroll) {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.05s ease-in;
+}
+
+.section-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--store-text-color, #000000);
+  margin-top: 0;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.product-section {
+  margin-top: 0;
+}
+
+.product-section:not(:first-child) {
+  margin-top: 30px;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 10px;
+  margin-left: 0;
+  margin-right: 0;
+  align-items: start;
+  justify-items: stretch;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  overflow: visible;
+}
+
+.product-card {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-self: stretch;
+  margin: 0;
+  overflow: visible;
+  position: relative;
+}
+
+/* Responsividade para telas muito pequenas */
+@media (max-width: 360px) {
+  .products-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .logo-text {
+    font-size: 24px;
+  }
+  
+  .section-title {
+    font-size: 22px;
+  }
+}
+
+/* Ajustes para tablets e telas médias */
+@media (min-width: 768px) {
+  .main-content {
+    max-width: 768px;
+    margin: 0 auto;
+    padding: 0 24px 40px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Primeira seção ou primeiro título deve ter o mesmo espaçamento que entre seções (30px) */
+  .main-content > .product-section:first-child,
+  .main-content > .section-title:first-child {
+    margin-top: 30px;
+  }
+  
+  .products-grid {
+    gap: 16px;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* Ajustes para telas grandes */
+@media (min-width: 1024px) {
+  .main-content {
+    max-width: 1024px;
+    padding: 0 32px 40px;
+  }
+  
+  .products-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Ajustes para telas muito grandes */
+@media (min-width: 1440px) {
+  .main-content {
+    max-width: 1440px;
+    padding: 0 40px 40px;
+  }
+  
+  .products-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+}
