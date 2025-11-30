@@ -268,6 +268,26 @@
   border-radius: 8px;
 }
 
+/* Status Badge - "Aberto" na parte inferior esquerda */
+.status-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 16px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #FFFFFF;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.status-badge span {
+  display: inline-block;
+}
+
 /* Ajustes para desktop - header menor */
 @media (min-width: 768px) {
   .header {
@@ -297,6 +317,13 @@
   
   .search-btn {
     right: 12px;
+  }
+  
+  .status-badge {
+    bottom: 10px;
+    left: 12px;
+    font-size: 13px;
+    padding: 5px 10px;
   }
 }
 

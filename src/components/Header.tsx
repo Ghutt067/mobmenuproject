@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import logoImage from '../assets/fequeijaologo.png';
 import menuIcon from '../icons/menu-svgrepo-com.svg';
 import closeIcon from '../icons/close-svgrepo-com.svg';
@@ -12,6 +13,7 @@ import ContactModal from './ContactModal';
 import './Header.css';
 
 const Header: React.FC = () => {
+  const location = useLocation();
   const { setSearchTerm, isSearchOpen, setIsSearchOpen } = useSearch();
   const { store } = useStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -25,6 +27,16 @@ const Header: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const { navigate } = useStoreNavigation();
+  
+  // Verificar se estamos na página home
+  // Home pode ser "/" ou "/:storeSlug" (sem outras rotas como /sacola, /produto, etc)
+  const isHomePage = location.pathname === '/' || 
+    (!location.pathname.includes('/sacola') && 
+     !location.pathname.includes('/checkout') && 
+     !location.pathname.includes('/produto') && 
+     !location.pathname.includes('/product') && 
+     !location.pathname.includes('/admin') &&
+     location.pathname.split('/').filter(Boolean).length <= 1);
   
   // Usar logo customizado se existir, senão usar o padrão
   const currentLogoUrl = store?.customizations?.logoUrl || logoImage;
@@ -330,6 +342,11 @@ const Header: React.FC = () => {
           )}
         </button>
       </div>
+      {isHomePage && !isSearchOpen && (
+        <div className="status-badge">
+          <span>Aberto</span>
+        </div>
+      )}
       <AboutModal isOpen={isAboutOpen} isExiting={isAboutExiting} onClose={handleAboutClose} />
       <ContactModal isOpen={isContactOpen} isExiting={isContactExiting} onClose={handleContactClose} />
     </header>

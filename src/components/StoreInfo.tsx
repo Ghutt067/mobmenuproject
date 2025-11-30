@@ -133,12 +133,12 @@ const StoreInfo: React.FC = () => {
       return `Abre às ${formattedOpenTime}`;
     }
     if (storeStatus === 'open' && formattedClosingTime) {
-      return `Aberto até às ${formattedClosingTime}`;
+      return `Até às ${formattedClosingTime}`;
     }
     if (formattedClosingTime) {
-      return `Aberto até às ${formattedClosingTime}`;
+      return `Até às ${formattedClosingTime}`;
     }
-    return 'Aberto';
+    return null;
   };
 
   return (
@@ -166,7 +166,7 @@ const StoreInfo: React.FC = () => {
           )}
 
           {/* Horário e Status */}
-          {(formattedClosingTime || currentTimeInfo || storeStatus !== 'open') && (
+          {getStatusText() && (formattedClosingTime || currentTimeInfo || storeStatus !== 'open') && (
             <div className="store-info-item">
               <svg 
                 className="store-info-icon" 

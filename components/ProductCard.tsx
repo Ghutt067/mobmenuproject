@@ -363,7 +363,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </>
           )}
           <div className="price-container" onClick={handleProductClick}>
-            {hasDiscount && formattedOldPrice && formattedOldPrice.trim() !== '' && formattedOldPrice !== formattedNewPrice && (
+            {hasDiscount && oldPrice && oldPrice.trim() !== '' && formattedOldPrice && formattedOldPrice.trim() !== '' && formattedOldPrice !== formattedNewPrice && (
               <>
                 <span className="price-old">{formattedOldPrice}</span>
                 <span className="price-separator">|</span>

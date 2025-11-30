@@ -21,12 +21,14 @@
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
-  background: #FFFFFF;
+  background: var(--store-background-color, #303030);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   z-index: 9999;
   overflow-y: auto;
   animation: modalFadeIn 0.3s ease;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 .contact-modal.exiting {
@@ -92,13 +94,14 @@
 }
 
 .contact-close-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .contact-close-btn .icon {
   width: 24px;
   height: 24px;
   object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
 .contact-content {
@@ -108,7 +111,7 @@
 .contact-content h1 {
   font-size: 32px;
   font-weight: 700;
-  color: #4A2C1A;
+  color: var(--store-text-color, #ffffff);
   margin: 0 0 32px 0;
   text-align: center;
 }
@@ -134,27 +137,28 @@
 .contact-icon {
   width: 24px;
   height: 24px;
-  object-fit: contain;
   flex-shrink: 0;
+  color: var(--store-text-color, #ffffff);
 }
 
 .contact-label {
   font-size: 18px;
   font-weight: 600;
-  color: #4A2C1A;
+  color: var(--store-text-color, #ffffff);
 }
 
 .contact-link {
   font-size: 18px;
-  color: #4A2C1A;
+  color: var(--store-text-color, #ffffff);
   text-decoration: none;
   padding-left: 36px;
-  transition: color 0.3s ease;
+  transition: color 0.3s ease, opacity 0.3s ease;
   word-break: break-word;
 }
 
 .contact-link:hover {
-  color: #8B4513;
+  color: var(--store-text-color, #ffffff);
+  opacity: 0.8;
   text-decoration: underline;
 }
 
@@ -215,4 +219,22 @@
     width: 20px;
     height: 20px;
   }
+}
+
+.contact-modal::-webkit-scrollbar {
+  width: 4px;
+}
+
+.contact-modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.contact-modal::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.contact-modal::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
 }

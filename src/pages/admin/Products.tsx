@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../contexts/StoreContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { createProduct, updateProduct, deleteProduct, clearProductsCache } from '../../services/productService';
+import { createProduct, updateProduct, deleteProduct, clearProductsCache, getAllProducts, type Product } from '../../services/productService';
 import { deleteImageFromStorage } from '../../utils/storageHelper';
-import { compressImageIfNeeded, compressBlobIfNeeded } from '../../utils/imageHelper';
+import { compressImageIfNeeded, compressBlobIfNeeded, getProductImage } from '../../utils/imageHelper';
+import { formatPrice } from '../../utils/priceFormatter';
 import AdminLayout from '../../components/admin/AdminLayout';
 import addImageIcon from '../../icons/addimage.svg';
 import trashIcon from '../../icons/trash-svgrepo-com.svg';
+import editIcon from '../../icons/edit.svg';
+import addIcon from '../../icons/addicon.svg';
 import './Products.css';
 import '../admin/Personalization.css';
 
@@ -26,8 +29,13 @@ interface Subset {
 
 export default function AdminProducts() {
   const navigate = useNavigate();
-  const { store, loading: storeLoading, loadStoreByAdminUser } = useStore();
+  const location = useLocation();
+  const { store, loading: storeLoading, loadStoreByAdminUser, reloadCustomizations } = useStore();
   const { user, loading: authLoading } = useAuth();
+  
+  // Verificar se veio da página de personalização para criar produto apenas para recomendados
+  const forRecommendedOnly = (location.state as any)?.forRecommendedOnly || false;
+
   const [products, setProducts] = useState<any[]>([]);
   const [sets, setSets] = useState<Set[]>([]);
   const [subsets, setSubsets] = useState<Subset[]>([]);
@@ -58,6 +66,29 @@ export default function AdminProducts() {
   const [showOldPrice, setShowOldPrice] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageUploadAreaRef = useRef<HTMLDivElement>(null);
+
+  // Estados para produtos recomendados
+  const [recommendedProductIds, setRecommendedProductIds] = useState<string[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [savingRecommendedProducts, setSavingRecommendedProducts] = useState(false);
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [searchAddProductTerm, setSearchAddProductTerm] = useState('');
+  const [showAddProductChoiceModal, setShowAddProductChoiceModal] = useState(false);
+  
+  // Estados para drag and drop de produtos recomendados
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  
+  // Estados para drag and drop de produtos em seções
+  const [sectionDraggedProduct, setSectionDraggedProduct] = useState<{ setId: string; productId: string; index: number } | null>(null);
+  const [sectionDragOverIndex, setSectionDragOverIndex] = useState<{ setId: string; index: number } | null>(null);
+  
+  // Refs para controle de salvamento dos produtos recomendados
+  const isInitialRecommendedProductsLoadRef = useRef(true);
+  const previousRecommendedProductsRef = useRef<string[] | null>(null);
+  const saveRecommendedProductsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSavingRecommendedProductsRef = useRef(false);
   
   // Estados para edição de imagem
   const [isEditing, setIsEditing] = useState(false);
@@ -120,6 +151,382 @@ export default function AdminProducts() {
       });
     }
   }, [formData.setId, editingProduct]);
+
+  // Abrir formulário automaticamente se for para criar produto apenas para recomendados
+  useEffect(() => {
+    if (forRecommendedOnly && !showAddForm && !editingProduct) {
+      setShowAddForm(true);
+      // Limpar formData para garantir que não tenha setId ou subsetId
+      setFormData(prev => ({
+        ...prev,
+        setId: '',
+        subsetId: ''
+      }));
+    }
+  }, [forRecommendedOnly, showAddForm, editingProduct]);
+
+  // Carregar produtos recomendados do store
+  useEffect(() => {
+    if (store?.customizations?.recommendedProductIds) {
+      setRecommendedProductIds(store.customizations.recommendedProductIds);
+      isInitialRecommendedProductsLoadRef.current = true;
+    }
+  }, [store?.customizations?.recommendedProductIds]);
+
+  // Carregar produtos disponíveis
+  useEffect(() => {
+    const loadProducts = async () => {
+      if (!store?.id) {
+        return;
+      }
+      
+      setProductsLoading(true);
+      try {
+        const products = await getAllProducts(store.id);
+        setAvailableProducts(products);
+        console.log('✅ Produtos carregados para recomendados:', products.length);
+      } catch (error) {
+        console.error('Erro ao carregar produtos:', error);
+        setMessage('❌ Erro ao carregar produtos. Tente recarregar a página.');
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    if (store?.id && !storeLoading && !authLoading) {
+      loadProducts();
+    }
+  }, [store?.id, storeLoading, authLoading]);
+
+  // Função auxiliar para comparar arrays
+  const arraysEqual = (a: string[], b: string[]): boolean => {
+    if (a.length !== b.length) return false;
+    return a.every((val, index) => val === b[index]);
+  };
+
+  // Salvar automaticamente quando recommendedProductIds mudar
+  useEffect(() => {
+    // Ignorar na primeira renderização
+    if (isInitialRecommendedProductsLoadRef.current) {
+      isInitialRecommendedProductsLoadRef.current = false;
+      previousRecommendedProductsRef.current = [...recommendedProductIds];
+      return;
+    }
+
+    // Não salvar se não houver store ou se estiver carregando
+    if (!store?.id || storeLoading || authLoading) {
+      return;
+    }
+
+    // Não salvar se o valor não mudou
+    if (previousRecommendedProductsRef.current !== null && 
+        arraysEqual(previousRecommendedProductsRef.current, recommendedProductIds)) {
+      return;
+    }
+
+    // Não salvar se já estiver salvando
+    if (isSavingRecommendedProductsRef.current) {
+      return;
+    }
+
+    // Atualizar valor anterior
+    previousRecommendedProductsRef.current = [...recommendedProductIds];
+
+    // Limpar timeout anterior se existir
+    if (saveRecommendedProductsTimeoutRef.current) {
+      clearTimeout(saveRecommendedProductsTimeoutRef.current);
+    }
+
+    // Debounce: aguardar 800ms após a última mudança antes de salvar
+    setSavingRecommendedProducts(true);
+    saveRecommendedProductsTimeoutRef.current = setTimeout(async () => {
+      isSavingRecommendedProductsRef.current = true;
+      try {
+        // Buscar customização existente
+        const { data: existingCustomization } = await supabase
+          .from('store_customizations')
+          .select('id')
+          .eq('store_id', store.id)
+          .maybeSingle();
+
+        const updateData = {
+          recommended_product_ids: recommendedProductIds,
+          updated_at: new Date().toISOString()
+        };
+
+        if (existingCustomization) {
+          // Atualizar existente
+          const { error: updateError } = await supabase
+            .from('store_customizations')
+            .update(updateData)
+            .eq('store_id', store.id);
+
+          if (updateError) throw updateError;
+        } else {
+          // Criar novo
+          const { error: insertError } = await supabase
+            .from('store_customizations')
+            .insert({
+              store_id: store.id,
+              ...updateData
+            });
+
+          if (insertError) throw insertError;
+        }
+
+        // Recarregar customizações
+        await reloadCustomizations();
+        setMessage('✅ Produtos recomendados atualizados!');
+      } catch (error: any) {
+        console.error('Erro ao salvar produtos recomendados:', error);
+        setMessage(`❌ Erro ao salvar: ${error.message || 'Erro desconhecido'}`);
+      } finally {
+        setSavingRecommendedProducts(false);
+        isSavingRecommendedProductsRef.current = false;
+      }
+    }, 800);
+
+    // Cleanup
+    return () => {
+      if (saveRecommendedProductsTimeoutRef.current) {
+        clearTimeout(saveRecommendedProductsTimeoutRef.current);
+      }
+    };
+  }, [recommendedProductIds, store?.id, storeLoading, authLoading, reloadCustomizations]);
+
+  // Funções para gerenciar produtos recomendados
+  const handleAddProduct = (productId: string) => {
+    if (recommendedProductIds.length >= 15) {
+      setMessage('⚠️ Máximo de 15 produtos recomendados permitido');
+      return;
+    }
+    if (!recommendedProductIds.includes(productId)) {
+      setRecommendedProductIds(prev => [...prev, productId]);
+    }
+  };
+
+  const handleRemoveProduct = (productId: string) => {
+    setRecommendedProductIds(prev => prev.filter(id => id !== productId));
+  };
+
+  const handleClearAll = () => {
+    if (confirm('Tem certeza que deseja remover todos os produtos recomendados?')) {
+      setRecommendedProductIds([]);
+    }
+  };
+
+  // Funções de drag and drop
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', index.toString());
+    
+    // Criar uma imagem personalizada para o drag sem fade
+    const dragElement = e.currentTarget.cloneNode(true) as HTMLElement;
+    const rect = e.currentTarget.getBoundingClientRect();
+    
+    // Configurar o elemento clonado com estilos exatos
+    dragElement.style.position = 'fixed';
+    dragElement.style.top = '-9999px';
+    dragElement.style.left = '-9999px';
+    dragElement.style.opacity = '1';
+    dragElement.style.width = `${rect.width}px`;
+    dragElement.style.height = `${rect.height}px`;
+    dragElement.style.margin = '0';
+    dragElement.style.padding = '12px';
+    dragElement.style.backgroundColor = '#f9f9f9';
+    dragElement.style.border = '1px solid #e0e0e0';
+    dragElement.style.borderRadius = '8px';
+    dragElement.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+    dragElement.style.pointerEvents = 'none';
+    dragElement.style.zIndex = '10000';
+    
+    document.body.appendChild(dragElement);
+    
+    // Calcular offset do mouse dentro do elemento
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Usar o elemento clonado como imagem de drag
+    e.dataTransfer.setDragImage(dragElement, x, y);
+    
+    // Remover o elemento clonado após um pequeno delay
+    setTimeout(() => {
+      if (document.body.contains(dragElement)) {
+        document.body.removeChild(dragElement);
+      }
+    }, 0);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    setRecommendedProductIds(prev => {
+      const newIds = [...prev];
+      const [removed] = newIds.splice(draggedIndex, 1);
+      newIds.splice(dropIndex, 0, removed);
+      return newIds;
+    });
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // Funções de drag and drop para produtos em seções
+  const handleSectionDragStart = (e: React.DragEvent, setId: string, productId: string, index: number) => {
+    setSectionDraggedProduct({ setId, productId, index });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', productId);
+    
+    // Criar uma imagem personalizada para o drag
+    const dragElement = e.currentTarget.cloneNode(true) as HTMLElement;
+    const rect = e.currentTarget.getBoundingClientRect();
+    
+    dragElement.style.position = 'fixed';
+    dragElement.style.top = '-9999px';
+    dragElement.style.left = '-9999px';
+    dragElement.style.opacity = '1';
+    dragElement.style.width = `${rect.width}px`;
+    dragElement.style.backgroundColor = '#f9f9f9';
+    dragElement.style.border = '1px solid #e0e0e0';
+    dragElement.style.borderRadius = '8px';
+    dragElement.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+    dragElement.style.pointerEvents = 'none';
+    dragElement.style.zIndex = '10000';
+    
+    document.body.appendChild(dragElement);
+    
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    e.dataTransfer.setDragImage(dragElement, x, y);
+    
+    setTimeout(() => {
+      document.body.removeChild(dragElement);
+    }, 0);
+  };
+
+  const handleSectionDragOver = (e: React.DragEvent, setId: string, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (sectionDraggedProduct && sectionDraggedProduct.setId === setId && sectionDraggedProduct.index !== index) {
+      setSectionDragOverIndex({ setId, index });
+    }
+  };
+
+  const handleSectionDragLeave = () => {
+    setSectionDragOverIndex(null);
+  };
+
+  const handleSectionDrop = async (e: React.DragEvent, setId: string, dropIndex: number) => {
+    e.preventDefault();
+    if (!sectionDraggedProduct || sectionDraggedProduct.setId !== setId || sectionDraggedProduct.index === dropIndex) {
+      setSectionDraggedProduct(null);
+      setSectionDragOverIndex(null);
+      return;
+    }
+
+    const dragIndex = sectionDraggedProduct.index;
+    
+    // Encontrar os produtos da seção (ou sem seção se setId === 'no-set')
+    const sectionProducts = setId === 'no-set' 
+      ? products.filter(p => !p.set_id).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+      : products.filter(p => p.set_id === setId).sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+    
+    if (dragIndex < 0 || dragIndex >= sectionProducts.length || dropIndex < 0 || dropIndex >= sectionProducts.length) {
+      setSectionDraggedProduct(null);
+      setSectionDragOverIndex(null);
+      return;
+    }
+
+    // Reordenar produtos
+    const newProducts = [...sectionProducts];
+    const [removed] = newProducts.splice(dragIndex, 1);
+    newProducts.splice(dropIndex, 0, removed);
+
+    // Atualizar display_order no banco de dados
+    try {
+      const updates = newProducts.map((product, index) => ({
+        id: product.id,
+        display_order: index
+      }));
+
+      // Atualizar todos os produtos em paralelo
+      await Promise.all(
+        updates.map(update =>
+          supabase
+            .from('products')
+            .update({ display_order: update.display_order })
+            .eq('id', update.id)
+        )
+      );
+
+      // Atualizar estado local
+      setProducts(prev => {
+        const updated = [...prev];
+        updates.forEach(update => {
+          const idx = updated.findIndex(p => p.id === update.id);
+          if (idx !== -1) {
+            updated[idx] = { ...updated[idx], display_order: update.display_order };
+          }
+        });
+        return updated;
+      });
+
+      setMessage('✅ Ordem dos produtos atualizada!');
+      setTimeout(() => setMessage(''), 2000);
+    } catch (error: any) {
+      console.error('Erro ao reordenar produtos:', error);
+      setMessage('❌ Erro ao reordenar produtos');
+    }
+
+    setSectionDraggedProduct(null);
+    setSectionDragOverIndex(null);
+  };
+
+  const handleSectionDragEnd = () => {
+    setSectionDraggedProduct(null);
+    setSectionDragOverIndex(null);
+  };
+
+  // Obter produtos selecionados na ordem correta
+  const selectedProducts = recommendedProductIds
+    .map(id => availableProducts.find(p => p.id === id))
+    .filter((p): p is Product => p !== undefined);
+
+  // Produtos disponíveis para adicionar (excluindo os já selecionados)
+  const availableToAdd = availableProducts.filter(
+    product => !recommendedProductIds.includes(product.id)
+  );
+
+  // Filtrar produtos disponíveis para adicionar por termo de busca
+  const filteredAvailableToAdd = availableToAdd.filter(product => {
+    if (!searchAddProductTerm.trim()) return true;
+    const searchLower = searchAddProductTerm.toLowerCase();
+    return product.title.toLowerCase().includes(searchLower);
+  });
 
   // Auto-remover mensagem após 3 segundos
   useEffect(() => {
@@ -538,6 +945,9 @@ export default function AdminProducts() {
       isActive: product.is_active ?? true,
     });
 
+    // Definir estado do toggle de preço anterior baseado se o produto tem old_price
+    setShowOldPrice(!!product.old_price && product.old_price.trim() !== '');
+
     // Carregar opções do produto
     try {
       const groups = await getProductOptionGroups(product.id);
@@ -810,7 +1220,7 @@ export default function AdminProducts() {
           title: formData.title,
           description1: '', // Limpar campos antigos
           description2: '', // Limpar campos antigos
-          oldPrice: formData.oldPrice,
+          oldPrice: showOldPrice ? formData.oldPrice : '', // Limpar oldPrice se toggle estiver desativado
           newPrice: formData.newPrice,
           fullDescription: formData.fullDescription,
           displayOrder: formData.displayOrder,
@@ -851,14 +1261,16 @@ export default function AdminProducts() {
           title: formData.title,
           description1: '', // Não usado mais
           description2: '', // Não usado mais
-          oldPrice: formData.oldPrice,
+          oldPrice: showOldPrice ? formData.oldPrice : '', // Limpar oldPrice se toggle estiver desativado
           newPrice: formData.newPrice,
           fullDescription: formData.fullDescription,
-          setId: formData.setId || undefined,
-          subsetId: formData.subsetId || undefined,
+          // Se for apenas para recomendados, não adicionar a nenhuma seção
+          setId: forRecommendedOnly ? undefined : (formData.setId || undefined),
+          subsetId: forRecommendedOnly ? undefined : (formData.subsetId || undefined),
           displayOrder: formData.displayOrder,
           isActive: formData.isActive,
           storeId: store.id, // Incluir storeId
+          forRecommendedOnly: forRecommendedOnly, // Indicar explicitamente que é apenas para recomendados
         });
 
         if (!created) {
@@ -868,6 +1280,69 @@ export default function AdminProducts() {
 
         productId = created.id;
         console.log('✅ [Products] Produto criado com sucesso:', created.id);
+        
+        // Se for apenas para recomendados, adicionar automaticamente aos produtos recomendados
+        if (forRecommendedOnly) {
+          try {
+            // Buscar customização existente
+            const { data: existingCustomization } = await supabase
+              .from('store_customizations')
+              .select('recommended_product_ids')
+              .eq('store_id', store.id)
+              .maybeSingle();
+
+            const currentIds = existingCustomization?.recommended_product_ids || [];
+            const newIds = Array.isArray(currentIds) ? currentIds : [];
+            
+            // Adicionar o novo produto se não estiver já na lista
+            if (!newIds.includes(productId)) {
+              const updatedIds = [...newIds, productId];
+              
+              const updateData = {
+                recommended_product_ids: updatedIds,
+                updated_at: new Date().toISOString()
+              };
+
+              if (existingCustomization) {
+                // Atualizar existente
+                const { error: updateError } = await supabase
+                  .from('store_customizations')
+                  .update(updateData)
+                  .eq('store_id', store.id);
+
+                if (updateError) throw updateError;
+              } else {
+                // Criar novo
+                const { error: insertError } = await supabase
+                  .from('store_customizations')
+                  .insert({
+                    store_id: store.id,
+                    ...updateData
+                  });
+
+                if (insertError) throw insertError;
+              }
+              
+              console.log('✅ Produto adicionado aos recomendados automaticamente');
+            }
+          } catch (error: any) {
+            console.error('Erro ao adicionar produto aos recomendados:', error);
+            // Não bloquear o fluxo se houver erro ao adicionar aos recomendados
+          }
+          
+          // Redirecionar de volta para a página de personalização
+          setMessage('✅ Produto criado e adicionado aos recomendados!');
+          clearProductsCache();
+          setShowAddForm(false);
+          setEditingProduct(null);
+          setSelectedImageFile(null);
+          setImagePreview(null);
+          setTimeout(() => {
+            navigate('/admin/personalizacao');
+          }, 1500);
+          return;
+        }
+        
         setMessage('✅ Produto criado com sucesso!');
       }
 
@@ -1752,7 +2227,13 @@ export default function AdminProducts() {
                             type="checkbox"
                             id="oldPriceToggle"
                             checked={showOldPrice}
-                            onChange={(e) => setShowOldPrice(e.target.checked)}
+                            onChange={(e) => {
+                              setShowOldPrice(e.target.checked);
+                              // Limpar oldPrice quando toggle for desativado
+                              if (!e.target.checked) {
+                                setFormData({ ...formData, oldPrice: '' });
+                              }
+                            }}
                           />
                           <label htmlFor="oldPriceToggle" style={{ margin: 0, width: '24px', height: '14px', borderRadius: '14px' }}>
                             <span style={{ display: 'none' }}>Toggle</span>
@@ -1842,12 +2323,16 @@ export default function AdminProducts() {
           const sectionsWithProducts = sets
             .map(set => ({
               set,
-              products: productsBySet.get(set.id) || []
+              // Ordenar produtos por display_order dentro de cada seção
+              products: (productsBySet.get(set.id) || []).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
             }))
             .sort((a, b) => {
               // Ordenar por display_order da seção
               return (a.set.display_order || 0) - (b.set.display_order || 0);
             });
+          
+          // Ordenar produtos sem seção também
+          productsWithoutSet.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
 
           return (
             <div className="products-by-section">
@@ -1874,22 +2359,25 @@ export default function AdminProducts() {
                           }}
                         />
                       ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-start' }}>
-                          <h2 
-                            className="section-title"
-                            onDoubleClick={() => handleSetNameDoubleClick(set)}
-                            style={{ cursor: 'pointer', margin: 0, textAlign: 'left' }}
-                            title="Clique duas vezes para editar"
-                          >
-                            {set.name}
-                          </h2>
+                        <h2 
+                          className="section-title"
+                          onDoubleClick={() => handleSetNameDoubleClick(set)}
+                          style={{ cursor: 'pointer', margin: 0, textAlign: 'left', display: 'inline-flex', alignItems: 'flex-start' }}
+                          title="Clique duas vezes para editar"
+                        >
+                          {set.name}
                           <button
-                            onClick={() => handleSetNameDoubleClick(set)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetNameDoubleClick(set);
+                            }}
                             style={{
                               background: 'transparent',
                               border: 'none',
                               cursor: 'pointer',
-                              padding: '4px',
+                              padding: '0',
+                              marginLeft: '-8px',
+                              marginTop: '-4px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -1900,9 +2388,21 @@ export default function AdminProducts() {
                             onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
                             title="Editar nome da seção"
                           >
-                            ✏️
+                            <svg 
+                              width="18" 
+                              height="18" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="#666" 
+                              strokeWidth="2.5" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                            >
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
                           </button>
-                        </div>
+                        </h2>
                       )}
                       <p className="section-info">
                         Ordem: {set.display_order || 0} • Produtos: {sectionProducts.length}
@@ -1913,8 +2413,10 @@ export default function AdminProducts() {
                         className="add-to-section-button"
                         onClick={() => handleAddToSection(set.id)}
                         title={`Adicionar produto à seção ${set.name}`}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                       >
-                        ➕ Adicionar Produto
+                        <img src={addIcon} alt="Adicionar" style={{ width: '16px', height: '16px', filter: 'brightness(0) invert(1)' }} />
+                        Adicionar produto
                       </button>
                       <button 
                         className="delete-section-button"
@@ -1956,9 +2458,9 @@ export default function AdminProducts() {
                       }
                     }}
                     onMouseDown={(e) => {
-                      // Não iniciar drag se clicar diretamente em botão
+                      // Não iniciar scroll drag se clicar em botão ou no drag handle
                       const target = e.target as HTMLElement;
-                      if (target.closest('button')) {
+                      if (target.closest('button') || target.closest('[draggable="true"]')) {
                         return;
                       }
                       
@@ -2018,8 +2520,223 @@ export default function AdminProducts() {
                     }}
                   >
                     {sectionProducts.length > 0 ? (
-                      sectionProducts.map((product, index) => (
-                        <div key={product.id} className="product-card">
+                      sectionProducts.map((product, index) => {
+                        const isSectionDragging = sectionDraggedProduct?.setId === set.id && sectionDraggedProduct?.index === index;
+                        const isSectionDragOver = sectionDragOverIndex?.setId === set.id && sectionDragOverIndex?.index === index;
+                        
+                        return (
+                          <div 
+                            key={product.id} 
+                            className="product-card"
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              handleSectionDragOver(e, set.id, index);
+                            }}
+                            onDragLeave={handleSectionDragLeave}
+                            onDrop={(e) => handleSectionDrop(e, set.id, index)}
+                            style={{
+                              opacity: isSectionDragging ? 0.4 : 1,
+                              transform: isSectionDragOver ? 'translateY(-4px)' : 'none',
+                              boxShadow: isSectionDragOver ? '0 4px 12px rgba(0, 123, 255, 0.3)' : undefined,
+                              border: isSectionDragOver ? '2px solid #007bff' : undefined,
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <div className="product-number">{index + 1}</div>
+                            <div className="product-image">
+                              {product.image ? (
+                                <img src={product.image} alt={product.title} />
+                              ) : (
+                                <div className="no-image">📷</div>
+                              )}
+                            </div>
+                            <div className="product-info">
+                              <h3>{product.title}</h3>
+                              <div className="product-price">
+                                {product.old_price && (
+                                  <span className="old-price">{product.old_price}</span>
+                                )}
+                                <span className="new-price">{product.new_price}</span>
+                              </div>
+                              <div className="product-meta">
+                                <span className={`status ${product.is_active ? 'active' : 'inactive'}`}>
+                                  {product.is_active ? '✅ Ativo' : '❌ Inativo'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="product-actions">
+                              <button onClick={() => handleEdit(product)} className="edit-button" title="Editar">
+                                <img src={editIcon} alt="Editar" />
+                              </button>
+                              <button onClick={() => handleDelete(product.id)} className="delete-button" title="Excluir">
+                                <img src={trashIcon} alt="Excluir" />
+                              </button>
+                            </div>
+                            {/* Drag Handle na parte inferior */}
+                            <div
+                              draggable
+                              onDragStart={(e) => {
+                                e.stopPropagation();
+                                handleSectionDragStart(e, set.id, product.id, index);
+                              }}
+                              onDragEnd={handleSectionDragEnd}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                padding: '6px',
+                                backgroundColor: isSectionDragging ? '#e3f2fd' : '#e8e8e8',
+                                borderRadius: '0 0 12px 12px',
+                                cursor: isSectionDragging ? 'grabbing' : 'grab',
+                                marginTop: '8px',
+                                marginLeft: '-14px',
+                                marginRight: '-14px',
+                                marginBottom: '-14px',
+                                userSelect: 'none',
+                                color: '#666',
+                                fontSize: '11px',
+                                fontWeight: '500',
+                                transition: 'background-color 0.2s'
+                              }}
+                              title="Arrastar para reordenar"
+                              onMouseEnter={(e) => {
+                                if (!isSectionDragging) {
+                                  e.currentTarget.style.backgroundColor = '#d5d5d5';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isSectionDragging) {
+                                  e.currentTarget.style.backgroundColor = '#e8e8e8';
+                                }
+                              }}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                style={{ pointerEvents: 'none' }}
+                              >
+                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                <line x1="3" y1="15" x2="21" y2="15"></line>
+                              </svg>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#666', fontStyle: 'italic' }}>
+                        Nenhum produto nesta seção ainda
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              {/* Botão para criar nova seção */}
+              <button 
+                className="add-button"
+                onClick={async () => {
+                  if (!store?.id) return;
+                  
+                  // Criar nova seção "Nova Seção"
+                  const nextOrder = sets.length > 0 
+                    ? Math.max(...sets.map(s => s.display_order || 0)) + 1 
+                    : 1;
+                  
+                  try {
+                    const { data, error } = await supabase
+                      .from('sets')
+                      .insert({
+                        name: 'Nova Seção',
+                        display_order: nextOrder,
+                        is_active: true,
+                        store_id: store.id,
+                      })
+                      .select()
+                      .single();
+
+                    if (error) throw error;
+
+                    setMessage('✅ Seção criada com sucesso!');
+                    clearProductsCache();
+                    await loadSets();
+                    
+                    // Entrar automaticamente no modo de edição
+                    if (data && data.id) {
+                      setEditingSetId(data.id);
+                      setEditingSetName('Nova Seção');
+                    }
+                  } catch (error: any) {
+                    console.error('Erro ao criar seção:', error);
+                    setMessage(`❌ Erro ao criar seção: ${error.message}`);
+                  }
+                }}
+                style={{ 
+                  background: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  marginTop: '-10px'
+                }}
+              >
+                ➕ Criar Nova Seção
+              </button>
+              
+              {/* Produtos sem seção */}
+              {productsWithoutSet.length > 0 && (
+                <div className="product-section-group">
+                  <div className="section-header">
+                    <div className="section-title-wrapper">
+                      <h2 className="section-title">Sem Seção</h2>
+                      <p className="section-info">
+                        Produtos: {productsWithoutSet.length}
+                      </p>
+                    </div>
+                    <button 
+                      className="add-to-section-button"
+                      onClick={handleAdd}
+                      title="Adicionar produto sem seção"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <img src={addIcon} alt="Adicionar" style={{ width: '16px', height: '16px', filter: 'brightness(0) invert(1)' }} />
+                      Adicionar produto
+                    </button>
+                  </div>
+                  <div className="products-list">
+                    {productsWithoutSet.map((product, index) => {
+                      const isSectionDragging = sectionDraggedProduct?.setId === 'no-set' && sectionDraggedProduct?.index === index;
+                      const isSectionDragOver = sectionDragOverIndex?.setId === 'no-set' && sectionDragOverIndex?.index === index;
+                      
+                      return (
+                        <div 
+                          key={product.id} 
+                          className="product-card"
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            handleSectionDragOver(e, 'no-set', index);
+                          }}
+                          onDragLeave={handleSectionDragLeave}
+                          onDrop={(e) => handleSectionDrop(e, 'no-set', index)}
+                          style={{
+                            opacity: isSectionDragging ? 0.4 : 1,
+                            transform: isSectionDragOver ? 'translateY(-4px)' : 'none',
+                            boxShadow: isSectionDragOver ? '0 4px 12px rgba(0, 123, 255, 0.3)' : undefined,
+                            border: isSectionDragOver ? '2px solid #007bff' : undefined,
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
                           <div className="product-number">{index + 1}</div>
                           <div className="product-image">
                             {product.image ? (
@@ -2043,139 +2760,71 @@ export default function AdminProducts() {
                             </div>
                           </div>
                           <div className="product-actions">
-                            <button onClick={() => handleEdit(product)} className="edit-button">
-                              ✏️ Editar
+                            <button onClick={() => handleEdit(product)} className="edit-button" title="Editar">
+                              <img src={editIcon} alt="Editar" />
                             </button>
-                            <button onClick={() => handleMoveProduct(product.id)} className="move-button" title="Trocar de seção">
-                              🔄 Mover
-                            </button>
-                            <button onClick={() => handleDelete(product.id)} className="delete-button">
-                              🗑️ Excluir
+                            <button onClick={() => handleDelete(product.id)} className="delete-button" title="Excluir">
+                              <img src={trashIcon} alt="Excluir" />
                             </button>
                           </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div style={{ padding: '20px', textAlign: 'center', color: '#666', fontStyle: 'italic' }}>
-                        Nenhum produto nesta seção ainda
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              
-              {/* Botão para criar nova seção */}
-              <div className="product-section-group" style={{ marginTop: '30px', padding: '20px', textAlign: 'center', border: '2px dashed #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-                <button 
-                  className="add-button"
-                  onClick={async () => {
-                    if (!store?.id) return;
-                    
-                    // Criar nova seção "Nova Seção"
-                    const nextOrder = sets.length > 0 
-                      ? Math.max(...sets.map(s => s.display_order || 0)) + 1 
-                      : 1;
-                    
-                    try {
-                      const { data, error } = await supabase
-                        .from('sets')
-                        .insert({
-                          name: 'Nova Seção',
-                          display_order: nextOrder,
-                          is_active: true,
-                          store_id: store.id,
-                        })
-                        .select()
-                        .single();
-
-                      if (error) throw error;
-
-                      setMessage('✅ Seção criada com sucesso!');
-                      clearProductsCache();
-                      await loadSets();
-                      
-                      // Entrar automaticamente no modo de edição
-                      if (data && data.id) {
-                        setEditingSetId(data.id);
-                        setEditingSetName('Nova Seção');
-                      }
-                    } catch (error: any) {
-                      console.error('Erro ao criar seção:', error);
-                      setMessage(`❌ Erro ao criar seção: ${error.message}`);
-                    }
-                  }}
-                  style={{ 
-                    background: '#007bff',
-                    color: 'white',
-                    border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
-                >
-                  ➕ Criar Nova Seção
-                </button>
-              </div>
-              
-              {/* Produtos sem seção */}
-              {productsWithoutSet.length > 0 && (
-                <div className="product-section-group">
-                  <div className="section-header">
-                    <div className="section-title-wrapper">
-                      <h2 className="section-title">Sem Seção</h2>
-                      <p className="section-info">
-                        Produtos: {productsWithoutSet.length}
-                      </p>
-                    </div>
-                    <button 
-                      className="add-to-section-button"
-                      onClick={handleAdd}
-                      title="Adicionar produto sem seção"
-                    >
-                      ➕ Adicionar Produto
-                    </button>
-                  </div>
-                  <div className="products-list">
-                    {productsWithoutSet.map((product, index) => (
-                      <div key={product.id} className="product-card">
-                        <div className="product-number">{index + 1}</div>
-                        <div className="product-image">
-                          {product.image ? (
-                            <img src={product.image} alt={product.title} />
-                          ) : (
-                            <div className="no-image">📷</div>
-                          )}
-                        </div>
-                        <div className="product-info">
-                          <h3>{product.title}</h3>
-                          <div className="product-price">
-                            {product.old_price && (
-                              <span className="old-price">{product.old_price}</span>
-                            )}
-                            <span className="new-price">{product.new_price}</span>
-                          </div>
-                          <div className="product-meta">
-                            <span className={`status ${product.is_active ? 'active' : 'inactive'}`}>
-                              {product.is_active ? '✅ Ativo' : '❌ Inativo'}
-                            </span>
+                          {/* Drag Handle na parte inferior */}
+                          <div
+                            draggable
+                            onDragStart={(e) => {
+                              e.stopPropagation();
+                              handleSectionDragStart(e, 'no-set', product.id, index);
+                            }}
+                            onDragEnd={handleSectionDragEnd}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              padding: '6px',
+                              backgroundColor: isSectionDragging ? '#e3f2fd' : '#e8e8e8',
+                              borderRadius: '0 0 12px 12px',
+                              cursor: isSectionDragging ? 'grabbing' : 'grab',
+                              marginTop: '8px',
+                              marginLeft: '-14px',
+                              marginRight: '-14px',
+                              marginBottom: '-14px',
+                              userSelect: 'none',
+                              color: '#666',
+                              fontSize: '11px',
+                              fontWeight: '500',
+                              transition: 'background-color 0.2s'
+                            }}
+                            title="Arrastar para reordenar"
+                            onMouseEnter={(e) => {
+                              if (!isSectionDragging) {
+                                e.currentTarget.style.backgroundColor = '#d5d5d5';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSectionDragging) {
+                                e.currentTarget.style.backgroundColor = '#e8e8e8';
+                              }
+                            }}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              style={{ pointerEvents: 'none' }}
+                            >
+                              <line x1="3" y1="9" x2="21" y2="9"></line>
+                              <line x1="3" y1="15" x2="21" y2="15"></line>
+                            </svg>
                           </div>
                         </div>
-                        <div className="product-actions">
-                          <button onClick={() => handleEdit(product)} className="edit-button">
-                            ✏️ Editar
-                          </button>
-                          <button onClick={() => handleMoveProduct(product.id)} className="move-button" title="Trocar de seção">
-                            🔄 Mover
-                          </button>
-                          <button onClick={() => handleDelete(product.id)} className="delete-button">
-                            🗑️ Excluir
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -2247,6 +2896,436 @@ export default function AdminProducts() {
           </div>
         </div>
       )}
+
+        {/* Seção de Produtos Recomendados */}
+        {!showAddForm && !editingProduct && (
+        <div className="form-container" style={{ marginTop: '30px', display: 'block' }}>
+          <h2>Produtos Recomendados</h2>
+          <p className="form-description">
+            Configure quais produtos aparecem na seção "Peça também" na página de checkout. Os produtos aparecerão na ordem que você selecionar.
+          </p>
+
+          <div className="form-group" style={{ alignItems: 'flex-start', textAlign: 'left' }}>
+            {/* Botão Add */}
+            <div style={{ width: '100%', marginBottom: '24px' }}>
+              <button
+                onClick={() => setShowAddProductChoiceModal(true)}
+                disabled={recommendedProductIds.length >= 15}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#fff',
+                  background: recommendedProductIds.length >= 15 ? '#ccc' : '#007bff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: recommendedProductIds.length >= 15 ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <img src={addIcon} alt="Adicionar" style={{ width: '16px', height: '16px', filter: 'brightness(0) invert(1)' }} />
+                Adicionar produto
+              </button>
+            </div>
+
+            {/* Produtos Selecionados */}
+            {selectedProducts.length > 0 && (
+              <div style={{ width: '100%', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>
+                    Produtos Selecionados ({selectedProducts.length}/15)
+                  </h3>
+                  <button
+                    onClick={handleClearAll}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '13px',
+                      color: '#dc3545',
+                      background: 'transparent',
+                      border: '1px solid #dc3545',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '500'
+                    }}
+                  >
+                    Limpar Todos
+                  </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedProducts.map((product, index) => {
+                    const productImage = getProductImage(product.image);
+                    const isDragging = draggedIndex === index;
+                    const isDragOver = dragOverIndex === index;
+                    return (
+                      <div
+                        key={product.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, index)}
+                        onDragEnd={handleDragEnd}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'stretch',
+                          gap: '12px',
+                          padding: '12px',
+                          backgroundColor: isDragging ? '#e3f2fd' : isDragOver ? '#f0f0f0' : '#f9f9f9',
+                          borderRadius: '8px',
+                          border: isDragOver ? '2px solid #007bff' : '1px solid #e0e0e0',
+                          cursor: isDragging ? 'grabbing' : 'grab',
+                          opacity: isDragging ? 0.3 : 1,
+                          transition: isDragging ? 'none' : 'all 0.2s'
+                        }}
+                      >
+                        <img
+                          src={productImage}
+                          alt={product.title}
+                          style={{
+                            width: '60px',
+                            height: '60px',
+                            objectFit: 'cover',
+                            borderRadius: '6px',
+                            flexShrink: 0,
+                            pointerEvents: 'none',
+                            alignSelf: 'center'
+                          }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', margin: '0 0 4px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {product.title}
+                          </h4>
+                          <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
+                            {formatPrice(product.newPrice)}
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px', flexShrink: 0, alignItems: 'stretch', alignSelf: 'stretch' }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveProduct(product.id);
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            style={{
+                              padding: '6px',
+                              background: '#dc3545',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              alignSelf: 'center'
+                            }}
+                            title="Remover"
+                          >
+                            <img src={trashIcon} alt="Remover" style={{ width: '16px', height: '16px', filter: 'brightness(0) invert(1)' }} />
+                          </button>
+                          {/* Drag Handle */}
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '3px',
+                              padding: '0 8px',
+                              cursor: 'grab',
+                              flexShrink: 0,
+                              backgroundColor: '#e0e0e0',
+                              borderRadius: '0 8px 8px 0',
+                              color: '#666',
+                              userSelect: 'none',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              margin: '-12px -12px -12px 0',
+                              alignSelf: 'stretch'
+                            }}
+                            title="Arrastar para reordenar"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <line x1="3" y1="9" x2="21" y2="9"></line>
+                              <line x1="3" y1="15" x2="21" y2="15"></line>
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+        )}
+
+        {/* Modal de escolha: Produto existente ou Criar produto */}
+        {showAddProductChoiceModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '20px'
+            }}
+            onClick={() => setShowAddProductChoiceModal(false)}
+          >
+            <div
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                width: '100%',
+                maxWidth: '400px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#333', margin: 0 }}>
+                Adicionar Produto
+              </h2>
+              <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
+                Escolha uma opção:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <button
+                  onClick={() => {
+                    setShowAddProductChoiceModal(false);
+                    setShowAddProductModal(true);
+                  }}
+                  style={{
+                    padding: '14px 20px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#fff',
+                    background: '#007bff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#0056b3';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#007bff';
+                  }}
+                >
+                  📦 Produto existente
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddProductChoiceModal(false);
+                    navigate('/admin/produtos', { state: { forRecommendedOnly: true } });
+                  }}
+                  style={{
+                    padding: '14px 20px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#fff',
+                    background: '#28a745',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#218838';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#28a745';
+                  }}
+                >
+                  ➕ Criar produto
+                </button>
+              </div>
+              <button
+                onClick={() => setShowAddProductChoiceModal(false)}
+                style={{
+                  padding: '10px',
+                  fontSize: '14px',
+                  color: '#666',
+                  background: 'transparent',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  marginTop: '8px'
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal para adicionar produtos */}
+        {showAddProductModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '20px'
+            }}
+            onClick={() => setShowAddProductModal(false)}
+          >
+            <div
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                width: '100%',
+                maxWidth: '600px',
+                maxHeight: '80vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header do Modal */}
+              <div style={{ padding: '20px', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#333', margin: 0 }}>
+                  Adicionar Produto
+                </h2>
+                <button
+                  onClick={() => setShowAddProductModal(false)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    color: '#666',
+                    padding: '0',
+                    width: '30px',
+                    height: '30px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Busca */}
+              <div style={{ padding: '20px', borderBottom: '1px solid #e0e0e0' }}>
+                <input
+                  type="text"
+                  placeholder="Buscar produto..."
+                  value={searchAddProductTerm}
+                  onChange={(e) => setSearchAddProductTerm(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    fontSize: '14px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Lista de Produtos */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+                {productsLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                    Carregando produtos...
+                  </div>
+                ) : filteredAvailableToAdd.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                    {searchAddProductTerm.trim() ? 'Nenhum produto encontrado' : 'Nenhum produto disponível para adicionar'}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {filteredAvailableToAdd.map((product) => {
+                      const productImage = getProductImage(product.image);
+                      return (
+                        <div
+                          key={product.id}
+                          onClick={() => {
+                            handleAddProduct(product.id);
+                            setShowAddProductModal(false);
+                            setSearchAddProductTerm('');
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px',
+                            backgroundColor: '#f9f9f9',
+                            borderRadius: '8px',
+                            border: '1px solid #e0e0e0',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f0f0f0';
+                            e.currentTarget.style.borderColor = '#007bff';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f9f9f9';
+                            e.currentTarget.style.borderColor = '#e0e0e0';
+                          }}
+                        >
+                          <img
+                            src={productImage}
+                            alt={product.title}
+                            style={{
+                              width: '60px',
+                              height: '60px',
+                              objectFit: 'cover',
+                              borderRadius: '6px',
+                              flexShrink: 0
+                            }}
+                          />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', margin: '0 0 4px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {product.title}
+                            </h4>
+                            <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
+                              {formatPrice(product.newPrice)}
+                            </p>
+                          </div>
+                          <div style={{ color: '#007bff', fontSize: '20px' }}>+</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
     </AdminLayout>
   );
 }

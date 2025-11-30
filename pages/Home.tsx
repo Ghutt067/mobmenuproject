@@ -6,7 +6,6 @@ import { useSearch } from '../contexts/SearchContext';
 import { useCart } from '../contexts/CartContext';
 import { useStore } from '../contexts/StoreContext';
 import CartBottomModal from '../components/CartBottomModal';
-import StoreInfo from '../components/StoreInfo';
 import '../App.css';
 
 interface HomeProps {
@@ -447,7 +446,7 @@ function Home({ previewMode = false }: HomeProps) {
                   />
                 ))
               ) : (
-                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#4A2C1A' }}>
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: 'var(--store-text-color, #4A2C1A)' }}>
                   <p>Nenhum produto nesta seção ainda</p>
                 </div>
               )}
@@ -498,7 +497,6 @@ function Home({ previewMode = false }: HomeProps) {
         className={`main-content ${showModal ? 'with-cart-modal' : ''} ${shouldHideContent ? 'restoring-scroll' : ''}`} 
         ref={mainContentRef}
       >
-        <StoreInfo />
         {isLoading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--store-text-color, #4A2C1A)' }}>
             <p>Carregando produtos...</p>

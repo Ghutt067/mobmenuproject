@@ -1,248 +1,198 @@
+/* ============================================
+   ADMIN SETTINGS - Design Minimalista
+   Cor tema: #5A6DFF
+   ============================================ */
+
+.settings-page {
+  animation: fadeInContent 0.4s ease-out;
+}
+
+@keyframes fadeInContent {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .settings-page h1 {
   margin: 0 0 8px 0;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #1A1D26;
+  letter-spacing: -0.02em;
 }
 
 .settings-page .subtitle {
-  margin: 0 0 30px 0;
-  font-size: 16px;
-  color: #666;
+  margin: 0 0 32px 0;
+  font-size: 15px;
+  color: #6B7280;
+  font-weight: 500;
 }
 
+/* Seções */
 .settings-section {
-  background: white;
-  border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .settings-section h2 {
-  margin: 0 0 24px 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a1a1a;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #f0f0f0;
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1A1D26;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  letter-spacing: -0.01em;
 }
 
+/* Grid de Informações */
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
 }
 
 .info-item label {
   display: block;
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
-  color: #666;
+  color: #9CA3AF;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .info-item p {
   margin: 0;
-  font-size: 16px;
-  color: #1a1a1a;
+  font-size: 15px;
+  color: #1A1D26;
   font-weight: 500;
 }
 
 .status-badge {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
-  font-size: 14px !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
 }
 
 .status-badge.active {
-  background-color: #d4edda;
-  color: #155724;
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
 }
 
+/* Acesso à Loja */
 .access-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .info-label {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: #4B5563;
 }
 
 .url-display {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
 .url-display code {
   flex: 1;
-  padding: 12px 16px;
-  background-color: #f5f5f5;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  font-family: monospace;
-  font-size: 14px;
-  color: #333;
+  padding: 14px 16px;
+  background: #F3F4F6;
+  border: none;
+  border-radius: 12px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 13px;
+  color: #1A1D26;
+  word-break: break-all;
 }
 
 .copy-button,
 .test-button {
-  padding: 10px 20px;
-  background-color: #667eea;
+  padding: 12px 20px;
+  background: #5A6DFF;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s;
   white-space: nowrap;
 }
 
 .copy-button:hover,
 .test-button:hover {
-  background-color: #5568d3;
+  background: #4A5AE0;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(90, 109, 255, 0.25);
 }
 
 .test-button {
-  background-color: #28a745;
+  background: #10B981;
 }
 
 .test-button:hover {
-  background-color: #218838;
+  background: #059669;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
 }
 
 .info-hint {
   margin: 0;
   font-size: 13px;
-  color: #999;
+  color: #9CA3AF;
 }
 
+/* Coming Soon */
 .coming-soon-box {
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: rgba(90, 109, 255, 0.04);
+  border-radius: 14px;
   padding: 24px;
+  border: 1px solid rgba(90, 109, 255, 0.1);
 }
 
 .coming-soon-box p {
-  margin: 0 0 12px 0;
-  font-size: 15px;
-  color: #555;
+  margin: 0 0 14px 0;
+  font-size: 14px;
+  color: #5A6DFF;
+  font-weight: 600;
 }
 
 .coming-soon-box ul {
   margin: 0;
-  padding-left: 24px;
+  padding-left: 20px;
   list-style: disc;
 }
 
 .coming-soon-box li {
-  margin: 6px 0;
+  margin: 8px 0;
   font-size: 14px;
-  color: #666;
+  color: #6B7280;
 }
 
-@media (max-width: 768px) {
-  .settings-page h1 {
-    font-size: 24px;
-  }
-
-  .settings-page .subtitle {
-    font-size: 14px;
-    margin-bottom: 20px;
-  }
-
-  .settings-section {
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-
-  .settings-section h2 {
-    font-size: 18px;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-  }
-
-  .info-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .info-item label {
-    font-size: 12px;
-    margin-bottom: 5px;
-  }
-
-  .info-item p {
-    font-size: 15px;
-  }
-
-  .access-info {
-    gap: 10px;
-  }
-
-  .info-label {
-    font-size: 13px;
-  }
-
-  .url-display {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .url-display code {
-    padding: 14px 14px;
-    font-size: 13px;
-    word-break: break-all;
-  }
-
-  .copy-button {
-    width: 100%;
-    padding: 12px 20px;
-    font-size: 14px;
-  }
-
-  .info-hint {
-    font-size: 12px;
-  }
-
-  .coming-soon-box {
-    padding: 20px;
-  }
-
-  .coming-soon-box p {
-    font-size: 14px;
-    margin-bottom: 10px;
-  }
-
-  .coming-soon-box ul {
-    padding-left: 20px;
-  }
-
-  .coming-soon-box li {
-    font-size: 13px;
-    margin: 5px 0;
-  }
-}
-
-/* Estilos para seção de edição */
+/* Seção com Header e Ações */
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .section-header h2 {
@@ -251,35 +201,38 @@
   border-bottom: none;
 }
 
+/* Botões */
 .edit-button,
 .save-button,
 .cancel-button {
-  padding: 10px 20px;
+  padding: 12px 20px;
   border: none;
-  border-radius: 6px;
+  border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
 .edit-button {
-  background-color: #667eea;
-  color: white;
+  background: rgba(90, 109, 255, 0.1);
+  color: #5A6DFF;
 }
 
 .edit-button:hover {
-  background-color: #5568d3;
+  background: #5A6DFF;
+  color: white;
 }
 
 .save-button {
-  background-color: #28a745;
+  background: #5A6DFF;
   color: white;
-  margin-left: 12px;
 }
 
 .save-button:hover:not(:disabled) {
-  background-color: #218838;
+  background: #4A5AE0;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(90, 109, 255, 0.25);
 }
 
 .save-button:disabled {
@@ -288,12 +241,12 @@
 }
 
 .cancel-button {
-  background-color: #6c757d;
-  color: white;
+  background: #F3F4F6;
+  color: #4B5563;
 }
 
 .cancel-button:hover:not(:disabled) {
-  background-color: #5a6268;
+  background: #E5E7EB;
 }
 
 .cancel-button:disabled {
@@ -303,13 +256,14 @@
 
 .edit-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
+/* Form Grid */
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
 }
 
 .form-item {
@@ -326,17 +280,17 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: #4B5563;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .field-hint {
   font-size: 11px;
   font-weight: 400;
-  color: #666;
+  color: #9CA3AF;
   text-transform: none;
   letter-spacing: normal;
   font-style: italic;
@@ -344,62 +298,133 @@
 
 .form-input,
 .form-textarea {
-  padding: 12px 16px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 14px 16px;
+  border: 2px solid #E5E7EB;
+  border-radius: 12px;
+  font-size: 15px;
   font-family: inherit;
-  color: #333;
-  background-color: #fff;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  color: #1A1D26;
+  background: #FFFFFF;
+  transition: all 0.2s;
 }
 
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #5A6DFF;
+  box-shadow: 0 0 0 4px rgba(90, 109, 255, 0.1);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #9CA3AF;
 }
 
 .form-textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 90px;
 }
 
 .info-value {
   margin: 0;
   font-size: 15px;
-  color: #1a1a1a;
+  color: #1A1D26;
   font-weight: 500;
-  padding: 12px 0;
+  padding: 14px 0;
   min-height: 20px;
 }
 
+/* Alerts */
 .alert {
-  padding: 12px 16px;
-  border-radius: 6px;
+  padding: 14px 18px;
+  border-radius: 12px;
   margin-bottom: 20px;
   font-size: 14px;
   font-weight: 500;
 }
 
 .alert-error {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background: rgba(239, 68, 68, 0.1);
+  color: #DC2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .alert-success {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
+/* ============================================
+   RESPONSIVO
+   ============================================ */
+
 @media (max-width: 768px) {
+  .settings-page h1 {
+    font-size: 24px;
+  }
+
+  .settings-page .subtitle {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .settings-section {
+    padding: 22px 18px;
+    margin-bottom: 16px;
+    border-radius: 16px;
+  }
+
+  .settings-section h2 {
+    font-size: 16px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .info-item label {
+    font-size: 10px;
+    margin-bottom: 4px;
+  }
+
+  .info-item p {
+    font-size: 14px;
+  }
+
+  .access-info {
+    gap: 12px;
+  }
+
+  .info-label {
+    font-size: 13px;
+  }
+
+  .url-display {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .url-display code {
+    padding: 13px 14px;
+    font-size: 12px;
+  }
+
+  .copy-button,
+  .test-button {
+    width: 100%;
+    padding: 13px 18px;
+    font-size: 14px;
+  }
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 14px;
   }
 
   .edit-actions {
@@ -409,12 +434,31 @@
   .save-button,
   .cancel-button {
     flex: 1;
-    margin-left: 0;
   }
 
   .form-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
+  }
+
+  .form-input,
+  .form-textarea {
+    padding: 13px 14px;
+    font-size: 16px;
+  }
+
+  .coming-soon-box {
+    padding: 20px;
+  }
+
+  .coming-soon-box p {
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .coming-soon-box li {
+    font-size: 13px;
+    margin: 6px 0;
   }
 }
 
@@ -423,59 +467,79 @@
     font-size: 22px;
   }
 
+  .settings-page .subtitle {
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
   .settings-section {
-    padding: 16px;
+    padding: 18px 14px;
+    border-radius: 14px;
   }
 
   .settings-section h2 {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .info-grid {
-    gap: 16px;
+    gap: 14px;
   }
 
   .info-item label {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .info-item p {
-    font-size: 14px;
+    font-size: 13px;
+  }
+
+  .status-badge {
+    padding: 5px 12px;
+    font-size: 12px !important;
   }
 
   .url-display code {
     padding: 12px;
-    font-size: 12px;
+    font-size: 11px;
   }
 
-  .copy-button {
-    padding: 10px 16px;
-    font-size: 13px;
-  }
-
-  .coming-soon-box {
-    padding: 16px;
-  }
-
-  .coming-soon-box p {
-    font-size: 13px;
-  }
-
-  .coming-soon-box li {
-    font-size: 12px;
-  }
-
-  .form-input,
-  .form-textarea {
-    padding: 10px 14px;
+  .copy-button,
+  .test-button {
+    padding: 12px 16px;
     font-size: 13px;
   }
 
   .edit-button,
   .save-button,
   .cancel-button {
-    padding: 10px 16px;
+    padding: 11px 16px;
     font-size: 13px;
   }
-}
 
+  .form-input,
+  .form-textarea {
+    padding: 12px 13px;
+    border-radius: 10px;
+  }
+
+  .form-item label {
+    font-size: 11px;
+  }
+
+  .field-hint {
+    font-size: 10px;
+  }
+
+  .coming-soon-box {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .coming-soon-box p {
+    font-size: 12px;
+  }
+
+  .coming-soon-box li {
+    font-size: 12px;
+  }
+}

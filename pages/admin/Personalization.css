@@ -86,6 +86,8 @@
   margin-top: 16px;
   justify-content: center;
   flex-wrap: nowrap;
+  min-height: 30px;
+  height: 30px;
 }
 
 .toggle-container select {
@@ -108,29 +110,36 @@
   background-color: #f5f5f5 !important;
 }
 
+/* Custom Dropdown no toggle-container */
+.toggle-container .custom-dropdown {
+  flex-shrink: 0;
+}
+
+.toggle-container .custom-dropdown-menu {
+  z-index: 10002;
+}
+
 .toggle-container span {
   font-size: 14px;
   font-weight: 500;
   color: #333;
   line-height: 1.5;
-  display: inline-block;
+  display: flex;
   align-items: center;
   white-space: nowrap;
   min-width: fit-content;
-  vertical-align: middle;
   margin: 0;
   padding: 0;
   margin-right: 0;
   flex-shrink: 0;
+  height: 22px;
 }
 
 .toggle-container label {
   cursor: pointer;
-  display: inline-block;
-  vertical-align: middle;
-  margin: 0;
+  display: block;
+  margin: auto 0;
   padding: 0;
-  margin-left: 0;
   position: relative;
   flex-shrink: 0;
   text-indent: -9999px;
@@ -139,6 +148,11 @@
   background: grey;
   border-radius: 22px;
   transition: background 0.3s;
+  align-self: center;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-size: 0;
+  line-height: 0;
 }
 
 .toggle-container label > span {
@@ -166,6 +180,7 @@
   position: absolute;
   opacity: 0;
   pointer-events: none;
+  align-self: center;
 }
 
 .toggle-container input:checked + label {

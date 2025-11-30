@@ -5,6 +5,82 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import './PromoBanner.css';
 
+// Estilos inline para as animações e barra promocional
+const animationStyles = `
+  .promo-banner {
+    width: 100%;
+    padding: 12px 16px;
+    text-align: center;
+    background-color: #FDD8A7;
+    box-sizing: border-box;
+  }
+  .promo-text {
+    font-size: 16px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0;
+    padding: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @keyframes blinkAnimation {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.3; }
+  }
+  @keyframes slideAnimation {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+  }
+  @keyframes pulseAnimation {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  .promo-text.animation-blink {
+    animation: blinkAnimation var(--animation-speed, 1s) ease-in-out infinite;
+  }
+  .promo-text.animation-slide {
+    animation: slideAnimation var(--animation-speed, 2s) ease-in-out infinite;
+    white-space: nowrap;
+    overflow: visible;
+    display: inline-block;
+  }
+  .promo-text.animation-pulse {
+    animation: pulseAnimation var(--animation-speed, 1.5s) ease-in-out infinite;
+  }
+  .promo-text.animation-shimmer {
+    position: relative;
+    display: inline-block;
+    background-size: 250% 100%, auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-repeat: no-repeat, padding-box;
+    background-image: 
+      linear-gradient(90deg, 
+        transparent calc(50% - var(--spread, 50px)), 
+        rgba(255, 255, 255, 0) calc(50% - var(--spread, 50px) + 15px),
+        rgba(255, 255, 255, 0.3) calc(50% - var(--spread, 50px) + 25px),
+        rgba(255, 255, 255, 0.6) calc(50% - var(--spread, 50px) + 35px),
+        rgba(255, 255, 255, 0.9) calc(50% - 10px),
+        rgba(255, 255, 255, 0.95) calc(50% - 5px),
+        rgba(255, 255, 255, 0.95) calc(50% + 5px),
+        rgba(255, 255, 255, 0.9) calc(50% + 10px),
+        rgba(255, 255, 255, 0.6) calc(50% + var(--spread, 50px) - 35px),
+        rgba(255, 255, 255, 0.3) calc(50% + var(--spread, 50px) - 25px),
+        rgba(255, 255, 255, 0) calc(50% + var(--spread, 50px) - 15px),
+        transparent calc(50% + var(--spread, 50px))
+      ),
+      linear-gradient(var(--text-color, #000), var(--text-color, #000));
+    animation: shimmerAnimation var(--animation-speed, 2s) linear infinite;
+  }
+  @keyframes shimmerAnimation {
+    0% { background-position: 100% center, 0% center; }
+    100% { background-position: 0% center, 0% center; }
+  }
+`;
+
 const PromoBanner = () => {
   const { store, reloadCustomizations } = useStore();
   const { user } = useAuth();
@@ -128,10 +204,12 @@ const PromoBanner = () => {
   };
   
   return (
-    <section 
-      className="promo-banner"
-      style={{ backgroundColor: bgColor }}
-    >
+    <>
+      <style>{animationStyles}</style>
+      <section 
+        className="promo-banner"
+        style={{ backgroundColor: bgColor }}
+      >
       {isEditingPromoText ? (
         <input
           type="text"
@@ -169,11 +247,21 @@ const PromoBanner = () => {
             }
           }}
           style={{
-            // Aplicar cor sempre, exceto para animações que usam gradiente (rotate)
-            color: animation !== 'rotate' ? textColor : undefined,
+            // Aplicar cor sempre, exceto para animações que usam gradiente (rotate) ou shimmer
+            color: animation !== 'rotate' && animation !== 'shimmer' ? textColor : undefined,
+            ...(animation === 'shimmer' ? {
+              '--text-color': textColor,
+              '--spread': '50px'
+            } : {}),
             ...(isAdminMode ? { cursor: 'pointer', userSelect: 'none' } : {}),
             ...(useGradient ? {
-              '--animation-speed': animationSpeed
+              '--animation-speed': (() => {
+                // Durações base para cada animação (mais lentas)
+                const baseDuration = animation === 'blink' ? 2 : animation === 'slide' ? 4 : animation === 'shimmer' ? 2 : 3;
+                // Calcular duração: quanto maior a velocidade, menor a duração
+                const calculatedDuration = baseDuration / animationSpeed;
+                return `${calculatedDuration}s`;
+              })()
             } : {})
           } as React.CSSProperties}
           title={isAdminMode ? 'Clique duas vezes para editar' : undefined}
@@ -182,6 +270,7 @@ const PromoBanner = () => {
         </p>
       )}
     </section>
+    </>
   );
 };
 

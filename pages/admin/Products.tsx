@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../contexts/StoreContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,8 +24,13 @@ interface Subset {
 
 export default function AdminProducts() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { store, loading: storeLoading, loadStoreByAdminUser } = useStore();
   const { user, loading: authLoading } = useAuth();
+  
+  // Verificar se veio da página de personalização para criar produto apenas para recomendados
+  const forRecommendedOnly = (location.state as any)?.forRecommendedOnly || false;
+
   const [products, setProducts] = useState<any[]>([]);
   const [sets, setSets] = useState<Set[]>([]);
   const [subsets, setSubsets] = useState<Subset[]>([]);
@@ -102,6 +107,19 @@ export default function AdminProducts() {
       });
     }
   }, [formData.setId, editingProduct]);
+
+  // Abrir formulário automaticamente se for para criar produto apenas para recomendados
+  useEffect(() => {
+    if (forRecommendedOnly && !showAddForm && !editingProduct) {
+      setShowAddForm(true);
+      // Limpar formData para garantir que não tenha setId ou subsetId
+      setFormData(prev => ({
+        ...prev,
+        setId: '',
+        subsetId: ''
+      }));
+    }
+  }, [forRecommendedOnly, showAddForm, editingProduct]);
 
   // Auto-remover mensagem após 3 segundos
   useEffect(() => {
@@ -356,6 +374,8 @@ export default function AdminProducts() {
       isActive: product.is_active ?? true,
     });
 
+    // Definir estado do toggle de preço anterior baseado se o produto tem old_price
+    setShowOldPrice(!!product.old_price && product.old_price.trim() !== '');
 
     setShowAddForm(true);
     setMessage('');
@@ -536,7 +556,7 @@ export default function AdminProducts() {
           title: formData.title,
           description1: '', // Limpar campos antigos
           description2: '', // Limpar campos antigos
-          oldPrice: formData.oldPrice,
+          oldPrice: showOldPrice ? formData.oldPrice : '', // Limpar oldPrice se toggle estiver desativado
           newPrice: formData.newPrice,
           fullDescription: formData.fullDescription,
           displayOrder: formData.displayOrder,
@@ -577,14 +597,16 @@ export default function AdminProducts() {
           title: formData.title,
           description1: '', // Não usado mais
           description2: '', // Não usado mais
-          oldPrice: formData.oldPrice,
+          oldPrice: showOldPrice ? formData.oldPrice : '', // Limpar oldPrice se toggle estiver desativado
           newPrice: formData.newPrice,
           fullDescription: formData.fullDescription,
-          setId: formData.setId || undefined,
-          subsetId: formData.subsetId || undefined,
+          // Se for apenas para recomendados, não adicionar a nenhuma seção
+          setId: forRecommendedOnly ? undefined : (formData.setId || undefined),
+          subsetId: forRecommendedOnly ? undefined : (formData.subsetId || undefined),
           displayOrder: formData.displayOrder,
           isActive: formData.isActive,
           storeId: store.id, // Incluir storeId
+          forRecommendedOnly: forRecommendedOnly, // Indicar explicitamente que é apenas para recomendados
         });
 
         if (!created) {
@@ -594,6 +616,69 @@ export default function AdminProducts() {
 
         productId = created.id;
         console.log('✅ [Products] Produto criado com sucesso:', created.id);
+        
+        // Se for apenas para recomendados, adicionar automaticamente aos produtos recomendados
+        if (forRecommendedOnly) {
+          try {
+            // Buscar customização existente
+            const { data: existingCustomization } = await supabase
+              .from('store_customizations')
+              .select('recommended_product_ids')
+              .eq('store_id', store.id)
+              .maybeSingle();
+
+            const currentIds = existingCustomization?.recommended_product_ids || [];
+            const newIds = Array.isArray(currentIds) ? currentIds : [];
+            
+            // Adicionar o novo produto se não estiver já na lista
+            if (!newIds.includes(productId)) {
+              const updatedIds = [...newIds, productId];
+              
+              const updateData = {
+                recommended_product_ids: updatedIds,
+                updated_at: new Date().toISOString()
+              };
+
+              if (existingCustomization) {
+                // Atualizar existente
+                const { error: updateError } = await supabase
+                  .from('store_customizations')
+                  .update(updateData)
+                  .eq('store_id', store.id);
+
+                if (updateError) throw updateError;
+              } else {
+                // Criar novo
+                const { error: insertError } = await supabase
+                  .from('store_customizations')
+                  .insert({
+                    store_id: store.id,
+                    ...updateData
+                  });
+
+                if (insertError) throw insertError;
+              }
+              
+              console.log('✅ Produto adicionado aos recomendados automaticamente');
+            }
+          } catch (error: any) {
+            console.error('Erro ao adicionar produto aos recomendados:', error);
+            // Não bloquear o fluxo se houver erro ao adicionar aos recomendados
+          }
+          
+          // Redirecionar de volta para a página de personalização
+          setMessage('✅ Produto criado e adicionado aos recomendados!');
+          clearProductsCache();
+          setShowAddForm(false);
+          setEditingProduct(null);
+          setSelectedImageFile(null);
+          setImagePreview(null);
+          setTimeout(() => {
+            navigate('/admin/personalizacao');
+          }, 1500);
+          return;
+        }
+        
         setMessage('✅ Produto criado com sucesso!');
       }
 
@@ -955,7 +1040,13 @@ export default function AdminProducts() {
                             type="checkbox"
                             id="oldPriceToggle"
                             checked={showOldPrice}
-                            onChange={(e) => setShowOldPrice(e.target.checked)}
+                            onChange={(e) => {
+                              setShowOldPrice(e.target.checked);
+                              // Limpar oldPrice quando toggle for desativado
+                              if (!e.target.checked) {
+                                setFormData({ ...formData, oldPrice: '' });
+                              }
+                            }}
                           />
                           <label htmlFor="oldPriceToggle" style={{ margin: 0, width: '24px', height: '14px', borderRadius: '14px' }}>
                             <span style={{ display: 'none' }}>Toggle</span>
@@ -1244,62 +1335,61 @@ export default function AdminProducts() {
               ))}
               
               {/* Botão para criar nova seção */}
-              <div className="product-section-group" style={{ marginTop: '30px', padding: '20px', textAlign: 'center', border: '2px dashed #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-                <button 
-                  className="add-button"
-                  onClick={async () => {
-                    if (!store?.id) return;
-                    
-                    // Criar nova seção "Nova Seção"
-                    const nextOrder = sets.length > 0 
-                      ? Math.max(...sets.map(s => s.display_order || 0)) + 1 
-                      : 1;
-                    
-                    try {
-                      const { data, error } = await supabase
-                        .from('sets')
-                        .insert({
-                          name: 'Nova Seção',
-                          display_order: nextOrder,
-                          is_active: true,
-                          store_id: store.id,
-                        })
-                        .select()
-                        .single();
+              <button 
+                className="add-button"
+                onClick={async () => {
+                  if (!store?.id) return;
+                  
+                  // Criar nova seção "Nova Seção"
+                  const nextOrder = sets.length > 0 
+                    ? Math.max(...sets.map(s => s.display_order || 0)) + 1 
+                    : 1;
+                  
+                  try {
+                    const { data, error } = await supabase
+                      .from('sets')
+                      .insert({
+                        name: 'Nova Seção',
+                        display_order: nextOrder,
+                        is_active: true,
+                        store_id: store.id,
+                      })
+                      .select()
+                      .single();
 
-                      if (error) throw error;
+                    if (error) throw error;
 
-                      setMessage('✅ Seção criada com sucesso!');
-                      clearProductsCache();
-                      await loadSets();
-                      
-                      // Entrar automaticamente no modo de edição após um pequeno delay
-                      if (data && data.id) {
-                        setTimeout(() => {
-                          setEditingSetId(data.id);
-                          setEditingSetName('Nova Seção');
-                        }, 100);
-                      }
-                    } catch (error: any) {
-                      console.error('Erro ao criar seção:', error);
-                      setMessage(`❌ Erro ao criar seção: ${error.message}`);
+                    setMessage('✅ Seção criada com sucesso!');
+                    clearProductsCache();
+                    await loadSets();
+                    
+                    // Entrar automaticamente no modo de edição após um pequeno delay
+                    if (data && data.id) {
+                      setTimeout(() => {
+                        setEditingSetId(data.id);
+                        setEditingSetName('Nova Seção');
+                      }, 100);
                     }
-                  }}
-                  style={{ 
-                    background: '#007bff',
-                    color: 'white',
-                    border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
-                >
-                  ➕ Criar Nova Seção
-                </button>
-              </div>
+                  } catch (error: any) {
+                    console.error('Erro ao criar seção:', error);
+                    setMessage(`❌ Erro ao criar seção: ${error.message}`);
+                  }
+                }}
+                style={{ 
+                  background: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  marginTop: '-10px'
+                }}
+              >
+                ➕ Criar Nova Seção
+              </button>
               
               {/* Produtos sem seção */}
               {productsWithoutSet.length > 0 && (

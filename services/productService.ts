@@ -483,6 +483,7 @@ export interface CreateProductData {
   displayOrder?: number;
   isActive?: boolean;
   storeId: string; // OBRIGATÓRIO - ID da loja
+  forRecommendedOnly?: boolean; // Se true, produto será atribuído a um set oculto e não aparecerá na página principal
 }
 
 /**
@@ -545,23 +546,117 @@ export async function createProduct(productData: CreateProductData): Promise<Pro
     };
     
     // Adicionar set_id e subset_id
+    // A constraint do banco exige que um produto tenha set_id OU subset_id
     if (productData.setId) {
       insertData.set_id = productData.setId;
-    } else {
-      // Se não foi fornecido set_id, atribuir à seção padrão "OS MAIS PEDIDOS"
-      const { data: defaultSet } = await supabase
-        .from('sets')
-        .select('id')
-        .eq('store_id', storeId)
-        .eq('name', 'OS MAIS PEDIDOS')
-        .single();
-      
-      if (defaultSet) {
-        insertData.set_id = defaultSet.id;
-      }
     }
     if (productData.subsetId) {
       insertData.subset_id = productData.subsetId;
+    }
+    
+    // Se não foi fornecido nem set_id nem subset_id, garantir que pelo menos um set_id exista
+    if (!insertData.set_id && !insertData.subset_id) {
+      // Detecta se é um produto apenas para recomendados
+      // Neste caso, criar/usar um set especial oculto (is_active: false) para que não apareça na página principal
+      const isRecommendedOnly = productData.forRecommendedOnly === true;
+      const setSpecialName = isRecommendedOnly ? 'PRODUTOS RECOMENDADOS' : 'OS MAIS PEDIDOS';
+      const setShouldBeActive = !isRecommendedOnly;
+      
+      // Tentar encontrar o set especial
+      let { data: specialSet } = await supabase
+        .from('sets')
+        .select('id')
+        .eq('store_id', storeId)
+        .eq('name', setSpecialName)
+        .single();
+      
+      // Se não encontrar, criar o set especial
+      if (!specialSet) {
+        const { data: newSet, error: setError } = await supabase
+          .from('sets')
+          .insert({
+            store_id: storeId,
+            name: setSpecialName,
+            display_order: isRecommendedOnly ? 9999 : 0, // Colocar recomendados no final
+            is_active: setShouldBeActive // Oculto se for apenas recomendados
+          })
+          .select()
+          .single();
+        
+        if (setError) {
+          console.error('❌ [createProduct] Erro ao criar set especial:', setError);
+          throw new Error('Erro ao criar seção especial. Verifique as políticas RLS da tabela sets no Supabase.');
+        }
+        
+        if (newSet) {
+          specialSet = newSet;
+        }
+      } else if (isRecommendedOnly) {
+        // Se já existe e é para recomendados, garantir que está inativo
+        await supabase
+          .from('sets')
+          .update({ is_active: false })
+          .eq('id', specialSet.id);
+      }
+      
+      // Se ainda não encontrou/criou o set especial, tentar usar "OS MAIS PEDIDOS" como fallback
+      if (!specialSet && isRecommendedOnly) {
+        const { data: defaultSet } = await supabase
+          .from('sets')
+          .select('id')
+          .eq('store_id', storeId)
+          .eq('name', 'OS MAIS PEDIDOS')
+          .single();
+        
+        if (defaultSet) {
+          specialSet = defaultSet;
+        }
+      }
+      
+      // Se ainda não encontrou nenhum set, buscar qualquer set disponível para a loja
+      if (!specialSet) {
+        const { data: anySet } = await supabase
+          .from('sets')
+          .select('id')
+          .eq('store_id', storeId)
+          .limit(1)
+          .single();
+        
+        if (anySet) {
+          specialSet = anySet;
+        }
+      }
+      
+      // Se ainda não encontrou nenhum set, criar o set "OS MAIS PEDIDOS"
+      if (!specialSet) {
+        const { data: newSet, error: setError } = await supabase
+          .from('sets')
+          .insert({
+            store_id: storeId,
+            name: 'OS MAIS PEDIDOS',
+            display_order: 0,
+            is_active: true
+          })
+          .select()
+          .single();
+        
+        if (setError) {
+          console.error('❌ [createProduct] Erro ao criar set padrão:', setError);
+          throw new Error('Erro ao criar seção padrão. Verifique as políticas RLS da tabela sets no Supabase.');
+        }
+        
+        if (newSet) {
+          specialSet = newSet;
+        }
+      }
+      
+      // Garantir que temos um set_id válido
+      if (specialSet) {
+        insertData.set_id = specialSet.id;
+        console.log(`✅ [createProduct] Produto atribuído ao set especial: ${setSpecialName} (ID: ${specialSet.id})`);
+      } else {
+        throw new Error('Não foi possível encontrar ou criar uma seção para o produto. Verifique se há sets cadastrados para esta loja.');
+      }
     }
     
     console.log('📤 [createProduct] Dados para inserção:', insertData);

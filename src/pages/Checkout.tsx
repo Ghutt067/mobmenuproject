@@ -26,12 +26,15 @@ function Checkout() {
   const animationRef = useRef<number | null>(null);
   const previousTotalRef = useRef<string>('0,00');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanding, setIsExpanding] = useState(false);
   const [isModalFirstAppearance, setIsModalFirstAppearance] = useState(false);
   const previousCartLengthRef = useRef<number>(0);
   const [isModalElasticBounce, setIsModalElasticBounce] = useState(false);
   // IDs dos produtos que devem aparecer no "Peça também" - agora vem das customizações
   const alsoOrderProductIds = store?.customizations?.recommendedProductIds || [];
   const alsoOrderGridRef = useRef<HTMLDivElement>(null);
+  const checkoutItemsWrapperRef = useRef<HTMLDivElement>(null);
+  const checkoutModalRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
@@ -48,6 +51,30 @@ function Checkout() {
     document.body.scrollTop = 0;
     window.scrollTo(0, 0);
   }, []);
+
+  // Função helper para converter hex para rgba
+  const hexToRgba = (hex: string, alpha: number): string => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return `rgba(74, 44, 26, ${alpha})`;
+    
+    const r = parseInt(result[1], 16);
+    const g = parseInt(result[2], 16);
+    const b = parseInt(result[3], 16);
+    
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  // Aplicar gradiente dinâmico baseado na cor secundária
+  useEffect(() => {
+    const secondaryColor = store?.customizations?.secondaryColor || '#4A2C1A';
+    
+    // Criar gradiente com a cor secundária
+    const gradient = `linear-gradient(to bottom, transparent 0%, ${hexToRgba(secondaryColor, 0.2)} 15%, ${hexToRgba(secondaryColor, 0.4)} 30%, ${hexToRgba(secondaryColor, 0.6)} 50%, ${hexToRgba(secondaryColor, 0.8)} 70%, ${hexToRgba(secondaryColor, 0.92)} 85%, ${hexToRgba(secondaryColor, 0.98)} 95%, ${secondaryColor} 100%)`;
+    
+    // Aplicar variável CSS global para o gradiente
+    const root = document.documentElement;
+    root.style.setProperty('--checkout-items-gradient', gradient);
+  }, [store?.customizations?.secondaryColor]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -124,27 +151,24 @@ function Checkout() {
   }, [cartProducts.length]);
 
   // Filtrar produtos para "Peça também" - mantém todos os produtos visíveis mesmo após adicionar ao carrinho
-  // Mantém a ordem especificada no array alsoOrderProductIds, excluindo produtos já no carrinho
+  // Mantém a ordem especificada no array alsoOrderProductIds
   const alsoOrderProducts = useMemo(() => {
     if (alsoOrderProductIds.length === 0) return [];
-    
-    // Obter IDs dos produtos que já estão no carrinho
-    const cartProductIds = new Set(cartItems.map(item => item.productId));
     
     // Criar um mapa para manter a ordem
     const productMap = new Map<string, Product>();
     products.forEach((product) => {
-      // Inclui apenas produtos da lista que NÃO estão no carrinho
-      if (alsoOrderProductIds.includes(product.id) && !cartProductIds.has(product.id)) {
+      // Inclui todos os produtos da lista, mesmo os que já estão no carrinho
+      if (alsoOrderProductIds.includes(product.id)) {
         productMap.set(product.id, product);
       }
     });
     
-    // Retornar na ordem especificada, excluindo produtos do carrinho
+    // Retornar na ordem especificada
     return alsoOrderProductIds
       .map((id) => productMap.get(id))
       .filter((product): product is Product => product !== undefined);
-  }, [products, alsoOrderProductIds, cartItems]);
+  }, [products, alsoOrderProductIds]);
 
   // Calcular total do carrinho incluindo preços adicionais das opções
   const cartTotal = useMemo(() => {
@@ -421,8 +445,8 @@ function Checkout() {
           </button>
         </div>
         {/* Lista de itens do carrinho */}
-        <div className={`checkout-modal ${isModalFirstAppearance ? 'modal-grow' : ''} ${isModalElasticBounce ? 'modal-elastic-bounce' : ''}`}>
-          <div className={`checkout-items-wrapper ${isExpanded ? 'expanded' : ''} ${cartProducts.length === 1 ? 'single-item' : ''}`}>
+        <div className={`checkout-modal ${isModalFirstAppearance ? 'modal-grow' : ''} ${isModalElasticBounce ? 'modal-elastic-bounce' : ''} ${isExpanding ? 'expanding' : ''} ${isExpanded ? 'expanded-modal' : ''}`} ref={checkoutModalRef}>
+          <div className={`checkout-items-wrapper ${isExpanded ? 'expanded' : ''} ${cartProducts.length === 1 ? 'single-item' : ''}`} ref={checkoutItemsWrapperRef}>
             <div className="checkout-items">
               {cartProducts.map((product) => {
                 const quantity = getItemQuantity(product.id);
@@ -485,7 +509,46 @@ function Checkout() {
           {cartProducts.length >= 2 && (
             <button 
               className="checkout-expand-btn" 
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={() => {
+                if (!isExpanded) {
+                  // Calcular a altura que o modal terá quando expandido
+                  if (checkoutModalRef.current && checkoutItemsWrapperRef.current) {
+                    // Altura atual do modal
+                    const currentModalHeight = checkoutModalRef.current.offsetHeight;
+                    
+                    // Temporariamente expandir o wrapper para medir a altura total expandida
+                    checkoutItemsWrapperRef.current.style.maxHeight = 'none';
+                    const expandedWrapperHeight = checkoutItemsWrapperRef.current.scrollHeight;
+                    checkoutItemsWrapperRef.current.style.maxHeight = '';
+                    
+                    // Calcular a altura adicional que será adicionada ao modal
+                    // Inclui o botão "Ver mais" que já está visível
+                    const currentWrapperHeight = checkoutItemsWrapperRef.current.offsetHeight;
+                    const wrapperHeightDiff = expandedWrapperHeight - currentWrapperHeight;
+                    
+                    // Aplicar a diferença como CSS variable para a animação
+                    checkoutModalRef.current.style.setProperty('--expand-height', `${wrapperHeightDiff}px`);
+                  }
+                  
+                  // Primeiro mover o conteúdo abaixo
+                  setIsExpanding(true);
+                  // Depois expandir o modal
+                  setTimeout(() => {
+                    setIsExpanded(true);
+                  }, 200);
+                  // Remover estado de expansão após animação completa
+                  setTimeout(() => {
+                    setIsExpanding(false);
+                  }, 700);
+                } else {
+                  setIsExpanded(false);
+                  setIsExpanding(false);
+                  // Limpar CSS variable
+                  if (checkoutModalRef.current) {
+                    checkoutModalRef.current.style.removeProperty('--expand-height');
+                  }
+                }
+              }}
               aria-label={isExpanded ? 'Recolher' : 'Expandir'}
             >
               <svg className={`checkout-expand-icon ${isExpanded ? 'expanded' : ''}`} width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -498,7 +561,7 @@ function Checkout() {
 
       {/* Seção "Peça também" - Opcional */}
       {alsoOrderProducts.length > 0 && (
-      <div className="checkout-also-order">
+      <div className={`checkout-also-order ${isExpanding || isExpanded ? 'content-shifting' : ''}`}>
         <h3 className="checkout-section-title">Peça também</h3>
         <div className="checkout-also-order-content">
             <div 
@@ -611,7 +674,10 @@ function Checkout() {
                       }}
                       aria-label="Adicionar ao carrinho"
                     >
-                      <img src={addIcon} alt="Adicionar" className="checkout-also-order-add-icon" />
+                      <svg className="checkout-also-order-add-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M11 8C11 7.44772 11.4477 7 12 7C12.5523 7 13 7.44772 13 8V11H16C16.5523 11 17 11.4477 17 12C17 12.5523 16.5523 13 16 13H13V16C13 16.5523 12.5523 17 12 17C11.4477 17 11 16.5523 11 16V13H8C7.44771 13 7 12.5523 7 12C7 11.4477 7.44772 11 8 11H11V8Z" fill="currentColor"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M23 12C23 18.0751 18.0751 23 12 23C5.92487 23 1 18.0751 1 12C1 5.92487 5.92487 1 12 1C18.0751 1 23 5.92487 23 12ZM3.00683 12C3.00683 16.9668 7.03321 20.9932 12 20.9932C16.9668 20.9932 20.9932 16.9668 20.9932 12C20.9932 7.03321 16.9668 3.00683 12 3.00683C7.03321 3.00683 3.00683 7.03321 3.00683 12Z" fill="currentColor"/>
+                      </svg>
                     </button>
                   </div>
                 );
@@ -622,14 +688,15 @@ function Checkout() {
       )}
 
       {/* Seção de Cupom */}
-      <div className="checkout-coupon">
+      <div className={`checkout-coupon ${isExpanding || isExpanded ? 'content-shifting' : ''}`}>
         <h3 className="checkout-section-title">
           Aplicar cupom
           <span className="checkout-optional">(Opcional)</span>
         </h3>
         <div className="checkout-coupon-input-wrapper">
-          <svg className="checkout-coupon-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M2.5 5L10 10L17.5 5M2.5 15H17.5V5H2.5V15Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg className="checkout-coupon-icon" width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="m29.9 2.1c-.8-.7-1.8-1.1-2.9-1.1h-8.6c-1.2 0-2.4.5-3.3 1.4l-12.7 12.7c-.8.9-1.3 2-1.4 3.1-.1 1.2.3 2.3 1.1 3.1l8.6 8.6c.7.7 1.7 1.1 2.8 1.1 1.2 0 2.4-.5 3.3-1.4l12.7-12.7c.9-.9 1.4-2.1 1.4-3.3l.1-8.6c0-1.1-.4-2.1-1.1-2.9zm-.9 11.5c0 .7-.3 1.4-.8 1.9l-12.7 12.7c-.5.5-1.2.8-1.9.8-.6 0-1.1-.2-1.4-.6l-8.6-8.6c-.4-.3-.6-.9-.6-1.5 0-.7.3-1.3.8-1.8l12.7-12.6c.5-.6 1.2-.9 1.9-.9h8.6c.6 0 1.1.2 1.4.6.4.3.6.8.6 1.4z" fill="currentColor"/>
+            <path d="m21.1 6.2c-1.3 1.3-1.3 3.4 0 4.7.6.6 1.5 1 2.3 1s1.7-.3 2.3-1c1.3-1.3 1.3-3.4 0-4.7-1.1-1.2-3.3-1.2-4.6 0zm3.3 3.3c-.5.5-1.4.5-1.8 0-.6-.5-.6-1.4-.1-1.9.2-.2.6-.4.9-.4s.7.1.9.4c.6.5.6 1.4.1 1.9z" fill="currentColor"/>
           </svg>
           <input
             type="text"
@@ -648,13 +715,13 @@ function Checkout() {
       </div>
 
       {/* Total */}
-      <div className="checkout-total">
+      <div className={`checkout-total ${isExpanding || isExpanded ? 'content-shifting' : ''}`}>
         <span className="checkout-total-label">Total</span>
         <span className="checkout-total-value">R$ {animatedTotal}</span>
       </div>
 
       {/* Observações */}
-      <div className="checkout-observations">
+      <div className={`checkout-observations ${isExpanding || isExpanded ? 'content-shifting' : ''}`}>
         <h3 className="checkout-section-title">Observações?</h3>
         <input
           type="text"
@@ -667,7 +734,7 @@ function Checkout() {
 
       {/* Aviso de pedido mínimo */}
       {minimumOrderValue > 0 && !meetsMinimumOrder && (
-        <div className="checkout-minimum-order-warning">
+        <div className={`checkout-minimum-order-warning ${isExpanding || isExpanded ? 'content-shifting' : ''}`}>
           <div className="checkout-minimum-order-warning-content">
             <span className="checkout-minimum-order-warning-text">
               Faltam <strong>{formatPrice(remainingAmountInReais.toFixed(2).replace('.', ','))}</strong> para atingir o pedido mínimo
@@ -683,7 +750,7 @@ function Checkout() {
       )}
 
       {/* Botões */}
-      <div className="checkout-buttons-container">
+      <div className={`checkout-buttons-container ${isExpanding || isExpanded ? 'content-shifting' : ''}`}>
         <div className="checkout-buttons-wrapper">
           <button className="checkout-btn-secondary" onClick={handleAddMoreItems}>
             Adicionar mais itens

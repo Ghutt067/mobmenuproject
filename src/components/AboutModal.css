@@ -21,7 +21,7 @@
   width: 90%;
   max-width: 800px;
   max-height: 90vh;
-  background: #FFFFFF;
+  background: var(--store-background-color, #303030);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   z-index: 9999;
@@ -29,7 +29,7 @@
   animation: modalFadeIn 0.3s ease;
   /* Scrollbar discreto e imperceptível */
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 .about-modal.exiting {
@@ -95,13 +95,14 @@
 }
 
 .about-close-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .about-close-btn .icon {
   width: 24px;
   height: 24px;
   object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
 .about-content {
@@ -111,13 +112,13 @@
 .about-content h1 {
   font-size: 32px;
   font-weight: 700;
-  color: #4A2C1A;
+  color: var(--store-text-color, #ffffff);
   margin: 0 0 32px 0;
   text-align: center;
 }
 
 .about-text {
-  color: #4A2C1A;
+  color: var(--store-text-color, #ffffff);
   line-height: 1.8;
   font-size: 16px;
 }
@@ -140,13 +141,13 @@
 }
 
 .about-modal::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
   transition: background-color 0.2s ease;
 }
 
 .about-modal::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Responsividade */

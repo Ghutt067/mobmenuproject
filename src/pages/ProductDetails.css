@@ -4,7 +4,7 @@
   margin: 0 auto;
   padding: 20px 16px;
   box-sizing: border-box;
-  background-color: #FFFFFF;
+  background-color: var(--store-background-color, #FFFFFF);
   min-height: 100vh;
 }
 
@@ -129,7 +129,7 @@
 .product-details-buy-btn {
   width: 100%;
   background-color: var(--store-primary-color, #4A2C1A);
-  color: var(--store-background-color, #FFFFFF);
+  color: var(--store-text-color, #FFFFFF);
   border: none;
   border-radius: 8px;
   padding: 16px;
@@ -153,7 +153,7 @@
   bottom: 20px;
   right: 20px;
   background-color: var(--store-primary-color, #4A2C1A);
-  color: var(--store-background-color, #FFFFFF);
+  color: var(--store-text-color, #FFFFFF);
   border: none;
   border-radius: 24px;
   padding: 12px 20px;

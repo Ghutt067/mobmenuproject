@@ -1,13 +1,13 @@
 .identification-page {
   min-height: 100vh;
-  background-color: #FFFFFF;
+  background-color: var(--store-background-color, #FFFFFF);
   padding-bottom: 40px;
 }
 
 /* Header */
 .identification-header {
   padding: 20px 24px;
-  background-color: #FFFFFF;
+  background-color: var(--store-background-color, #FFFFFF);
 }
 
 .identification-header-content {
@@ -25,8 +25,8 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background-color: #FFFFFF;
-  border: 2px solid #E5E5E5;
+  background-color: transparent;
+  border: 2px solid var(--store-menu-border-color, color-mix(in srgb, var(--store-background-color, #FFFFFF) 85%, white));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -41,7 +41,6 @@
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
-  border: 2px solid #4A2C1A;
 }
 
 .identification-logo-text {
@@ -86,14 +85,15 @@
   display: flex;
   align-items: baseline;
   gap: 0;
+  color: var(--store-text-color, #000000);
 }
 
 .identification-currency {
-  color: #4A2C1A;
+  color: var(--store-primary-color, #4A2C1A);
 }
 
 .identification-value {
-  color: #525866;
+  color: var(--store-text-color, #000000);
 }
 
 .identification-cart-row {
@@ -108,7 +108,7 @@
 .identification-cart-link {
   font-size: 12px;
   font-weight: 700;
-  color: #525866;
+  color: var(--store-text-color, #000000);
   cursor: pointer;
   transition: color 0.2s;
   background: none;
@@ -120,13 +120,13 @@
 
 .identification-cart-link:hover,
 .identification-cart-link.active {
-  color: #4A2C1A;
+  color: var(--store-primary-color, #4A2C1A);
 }
 
 .identification-cart-arrow {
   color: #FFFFFF;
   transition: transform 0.3s ease;
-  background-color: #4A2C1A;
+  background-color: var(--store-primary-color, #4A2C1A);
   border-radius: 4px;
   width: 18px;
   height: 15px;
@@ -153,7 +153,7 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  background-color: #4A2C1A;
+  background-color: var(--store-primary-color, #4A2C1A);
   border-radius: 12px;
   box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
   min-width: 320px;
@@ -162,7 +162,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   z-index: 1000;
-  padding: 20px;
+  padding: 12px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
   transform-origin: top right;
@@ -336,13 +336,14 @@
   height: 20px;
   display: block;
   object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
 .identification-cart-count {
   position: absolute;
   top: -6px;
   right: -6px;
-  background-color: #4A2C1A;
+  background-color: var(--store-primary-color, #4A2C1A);
   color: #FFFFFF;
   font-size: 10px;
   font-weight: 700;
@@ -356,7 +357,7 @@
 
 .identification-header-divider {
   height: 2px;
-  background-color: #E5E5E5;
+  background-color: var(--store-menu-border-color, color-mix(in srgb, var(--store-background-color, #FFFFFF) 85%, white));
   width: 100%;
 }
 
@@ -370,7 +371,7 @@
   padding-top: 48px;
   padding-bottom: 0;
   margin-bottom: -8px;
-  background-color: #FFFFFF;
+  background-color: var(--store-background-color, #FFFFFF);
   gap: 16px;
 }
 
@@ -417,7 +418,7 @@
   gap: 8px;
   padding: 8px 16px;
   border-radius: 20px;
-  background-color: #F5F5F5;
+  background-color: var(--store-background-color, #FFFFFF);
   transition: all 0.3s ease;
 }
 
@@ -426,7 +427,7 @@
 }
 
 .identification-step-clickable:hover {
-  background-color: #E5E5E5;
+  background-color: var(--store-background-color, #FFFFFF);
   transform: translateY(-1px);
 }
 
@@ -436,7 +437,7 @@
 }
 
 .identification-step-active {
-  background-color: #FFFFFF;
+  background-color: var(--store-background-color, #FFFFFF);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -449,23 +450,32 @@
   justify-content: center;
   font-size: 14px;
   font-weight: 700;
-  background-color: #E5E5E5;
-  color: #666;
+  background-color: transparent;
+  color: var(--store-text-color, #000000);
 }
 
 .identification-step-active .identification-step-number {
-  background-color: #4A2C1A;
+  background-color: var(--store-primary-color, #4A2C1A);
   color: #FFFFFF;
+}
+
+.identification-step-disabled .identification-step-number {
+  background-color: #E5E5E5;
+  color: #999999;
 }
 
 .identification-step-label {
   font-size: 14px;
   font-weight: 700;
-  color: #525866;
+  color: var(--store-text-color, #000000);
 }
 
 .identification-step-active .identification-step-label {
-  color: #4A2C1A;
+  color: var(--store-primary-color, #4A2C1A);
+}
+
+.identification-step-disabled .identification-step-label {
+  color: #999999;
 }
 
 /* Main Content */
@@ -478,7 +488,7 @@
 
 /* Section */
 .identification-section {
-  background-color: #FFFFFF;
+  background-color: var(--store-background-color, #FFFFFF);
   border-radius: 12px;
   padding: 24px;
   padding-top: 0;
@@ -497,7 +507,7 @@
 .identification-section-title {
   font-size: 20px;
   font-weight: 400;
-  color: #525866;
+  color: var(--store-text-color, #000000);
   margin: 0;
 }
 
@@ -680,7 +690,7 @@
 .identification-input {
   width: 100%;
   padding: 20px 16px;
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: var(--store-input-background-color, rgba(255, 255, 255, 0.5));
   border: 1px solid rgba(0, 0, 0, 0.5);
   border-bottom-width: 2px;
   border-radius: 6px;
@@ -711,7 +721,7 @@
   outline: none;
   border-color: #000000;
   border-bottom-width: 2px;
-  background-color: #FFFFFF;
+  background-color: var(--store-input-background-color, #FFFFFF);
   color: #000000;
 }
 
@@ -721,7 +731,7 @@
 
 .identification-input:not(:placeholder-shown) {
   color: #000000;
-  background-color: #FFFFFF;
+  background-color: var(--store-input-background-color, #FFFFFF);
 }
 
 .identification-input::placeholder {
@@ -734,11 +744,11 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #4A2C1A;
+  color: var(--store-primary-color, #4A2C1A);
   pointer-events: none;
   opacity: 1;
   z-index: 1;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, color 0.2s;
   width: 20px;
   height: 20px;
   flex-shrink: 0;
@@ -759,7 +769,7 @@
 
 .identification-input-group:focus-within .identification-input {
   border-color: #000000;
-  background-color: #FFFFFF;
+  background-color: var(--store-input-background-color, #FFFFFF);
   color: #000000;
 }
 
@@ -840,15 +850,17 @@
   margin-bottom: 8px;
   margin-left: 12px;
   padding-top: 3px;
-  color: #4A2C1A;
+  color: var(--store-primary-color, #4A2C1A);
   text-decoration: underline;
   font-size: 14px;
   font-weight: 400;
   cursor: pointer;
+  transition: color 0.2s;
 }
 
 .identification-cep-link:hover {
-  color: #2A1A0A;
+  color: var(--store-primary-color, #4A2C1A);
+  opacity: 0.8;
 }
 
 .identification-cep-link.fade-out {
@@ -898,8 +910,8 @@
 }
 
 .identification-shipping-option.selected {
-  border-color: #4A2C1A;
-  background-color: rgba(74, 44, 26, 0.1);
+  border-color: var(--store-primary-color, #4A2C1A);
+  background-color: color-mix(in srgb, var(--store-primary-color, #4A2C1A) 10%, transparent);
 }
 
 .identification-shipping-option input[type="radio"] {
@@ -920,7 +932,7 @@
 
 .identification-shipping-option input[type="radio"]:checked {
   background-color: transparent;
-  border-color: #000000;
+  border-color: var(--store-primary-color, #4A2C1A);
   position: relative;
 }
 
@@ -931,7 +943,7 @@
   top: 50%;
   width: 8px;
   height: 8px;
-  background-color: #4A2C1A;
+  background-color: var(--store-primary-color, #4A2C1A);
   border-radius: 50%;
   transform: translate(-50%, -50%);
 }
@@ -967,6 +979,13 @@
   right: 16px;
   top: 50%;
   transform: translateY(-50%);
+  opacity: 0.7;
+}
+
+.identification-shipping-option.selected .identification-shipping-price,
+.identification-shipping-option.selected .identification-shipping-name,
+.identification-shipping-option.selected .identification-shipping-time {
+  color: var(--store-text-color, #000000);
 }
 
 /* Seção de Endereço */
@@ -984,17 +1003,17 @@
   padding: 12px 16px;
   background-color: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 0;
+  border-radius: 6px;
 }
 
 .identification-address-icon {
-  color: #4A2C1A;
+  color: var(--store-primary-color, #4A2C1A);
   flex-shrink: 0;
 }
 
 .identification-address-text {
   font-size: 14px;
-  color: #4A2C1A;
+  color: var(--store-primary-color, #4A2C1A);
   font-weight: 500;
 }
 
@@ -1052,8 +1071,8 @@
 }
 
 .identification-checkbox-label input[type="checkbox"]:checked {
-  background-color: #4A2C1A;
-  border-color: #4A2C1A;
+  background-color: var(--store-primary-color, #4A2C1A);
+  border-color: var(--store-primary-color, #4A2C1A);
 }
 
 .identification-checkbox-label input[type="checkbox"]:checked::after {
@@ -1091,11 +1110,13 @@
 
 /* Security Box */
 .identification-security-box {
-  background-color: #F5F5F5;
+  background-color: var(--store-background-color, #F5F5F5);
   border-radius: 12px;
   padding: 0;
   margin-bottom: 8px;
-  border: 3px solid #E5E5E5;
+  border-width: 3px;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--store-menu-border-color, color-mix(in srgb, var(--store-background-color, #FFFFFF) 85%, white)) 15%, transparent);
   overflow: hidden;
   position: relative;
   width: 100%;
@@ -1108,7 +1129,7 @@
   left: 16px;
   font-size: 18px;
   font-weight: 700;
-  color: #000000;
+  color: var(--store-text-color, #000000);
   z-index: 100;
   pointer-events: none;
 }
@@ -1192,7 +1213,7 @@
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  border: 2px solid #4A2C1A;
+  border: 2px solid var(--store-menu-border-color, color-mix(in srgb, var(--store-background-color, #FFFFFF) 85%, white));
 }
 
 .identification-product-center {
@@ -1329,7 +1350,7 @@
 }
 
 .payment-section-content {
-  background-color: #FFFFFF;
+  background-color: var(--store-background-color, #FFFFFF);
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
@@ -1342,7 +1363,7 @@
 .payment-section-title {
   font-size: 20px;
   font-weight: 400;
-  color: #525866;
+  color: var(--store-text-color, #000000);
   margin: 0;
 }
 
@@ -1354,26 +1375,32 @@
 
 .payment-option {
   width: 100%;
-  padding: 20px 24px;
-  background-color: #FFFFFF;
-  border: 2px solid #E5E5E5;
-  border-radius: 8px;
+  padding: 20px 16px;
+  background-color: var(--store-input-background-color, rgba(255, 255, 255, 0.5));
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  border-bottom-width: 2px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
   text-align: left;
   box-sizing: border-box;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.5);
 }
 
-.payment-option:hover {
-  border-color: #4A2C1A;
-  background-color: #F9F9F9;
-  transform: translateY(-2px);
-  box-shadow: 0px 4px 12px rgba(74, 44, 26, 0.1);
+.payment-option:hover,
+.payment-option:focus {
+  outline: none;
+  border-color: #000000;
+  border-bottom-width: 2px;
+  background-color: var(--store-input-background-color, #FFFFFF);
+  color: #000000;
 }
 
 .payment-option:active {
-  transform: translateY(0);
-  box-shadow: 0px 2px 6px rgba(74, 44, 26, 0.1);
+  transform: none;
+  box-shadow: none;
 }
 
 .payment-option-content {
@@ -1385,36 +1412,42 @@
 .payment-option-label {
   font-size: 16px;
   font-weight: 700;
-  color: #4A2C1A;
+  color: rgba(0, 0, 0, 0.5);
   text-transform: uppercase;
   letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+.payment-option:hover .payment-option-label,
+.payment-option:focus .payment-option-label {
+  color: #000000;
 }
 
 .payment-option-pix {
-  background-color: #F5F5F5;
+  background-color: var(--store-input-background-color, rgba(255, 255, 255, 0.5));
 }
 
 .payment-option-pix:hover {
-  background-color: #E8F5E9;
-  border-color: #4CAF50;
+  background-color: var(--store-input-background-color, #FFFFFF);
+  border-color: #000000;
 }
 
 .payment-option-credit {
-  background-color: #F5F5F5;
+  background-color: var(--store-input-background-color, rgba(255, 255, 255, 0.5));
 }
 
 .payment-option-credit:hover {
-  background-color: #E3F2FD;
-  border-color: #2196F3;
+  background-color: var(--store-input-background-color, #FFFFFF);
+  border-color: #000000;
 }
 
 .payment-option-debit {
-  background-color: #F5F5F5;
+  background-color: var(--store-input-background-color, rgba(255, 255, 255, 0.5));
 }
 
 .payment-option-debit:hover {
-  background-color: #FFF3E0;
-  border-color: #FF9800;
+  background-color: var(--store-input-background-color, #FFFFFF);
+  border-color: #000000;
 }
 
 /* Actions */

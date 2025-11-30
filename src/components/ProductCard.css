@@ -76,12 +76,17 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #4A2C1A;
+  background-color: var(--store-primary-color, #426478);
+  color: var(--store-text-color, #FFFFFF);
   font-size: 24px;
   font-weight: 700;
-  padding: 8px 16px;
-  border-radius: 8px;
+  padding: 12px;
+  border-radius: 50%;
+  min-width: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
   z-index: 1;
 }
@@ -133,7 +138,7 @@
 
 .readmore-link {
   position: relative;
-  color: #000000;
+  color: var(--store-text-color, #000000);
   cursor: pointer;
   font-size: 14px;
   text-align: left;
@@ -204,6 +209,7 @@
   font-weight: 400;
   text-decoration: none;
   padding-bottom: 2px;
+  transition: opacity 0.2s ease;
 }
 
 .product-content:has(.readmore.expand) .readmore-icon {
@@ -326,10 +332,15 @@
 
 
 .readmore-link:hover {
-  color: #000000;
+  color: var(--store-text-color, #000000);
+  opacity: 0.8;
 }
 
 .readmore-link:hover .readmore-icon {
+  opacity: 0.7;
+}
+
+.readmore-link:hover .readmore-text {
   opacity: 0.7;
 }
 

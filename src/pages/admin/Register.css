@@ -1,47 +1,65 @@
+/* ============================================
+   ADMIN REGISTER - Design Minimalista
+   Cor tema: #5A6DFF
+   ============================================ */
+
 .admin-register-page {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
   width: 100%;
-  background: #1F1F1F;
-  padding: 20px;
+  background: linear-gradient(135deg, #F8F9FC 0%, #EEF0F7 100%);
+  padding: 24px;
   box-sizing: border-box;
 }
 
 .register-container {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  background: #FFFFFF;
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
   width: 100%;
-  max-width: 420px;
-  padding: 40px;
+  max-width: 400px;
+  padding: 44px 40px;
   box-sizing: border-box;
-  margin: 0 auto;
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .register-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .register-header h1 {
   margin: 0 0 8px 0;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #1A1D26;
+  letter-spacing: -0.02em;
 }
 
 .register-subtitle {
   margin: 0;
   font-size: 14px;
-  color: #666;
+  color: #6B7280;
+  font-weight: 500;
 }
 
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 14px;
 }
 
 .form-group {
@@ -56,20 +74,20 @@
   display: none;
 }
 
+/* Inputs - Estilo Base */
 .form-group input,
 .form-group input[type="password"],
 .form-group input[type="text"],
 .form-group input[type="email"]:not(.register-input-with-icon) {
   width: 100% !important;
-  padding: 20px 16px !important;
-  background-color: rgba(255, 255, 255, 0.5) !important;
-  border: 1px solid rgba(0, 0, 0, 0.5) !important;
-  border-bottom-width: 2px !important;
-  border-radius: 6px !important;
-  font-size: 14px !important;
-  font-weight: 700 !important;
-  color: rgba(0, 0, 0, 0.5) !important;
-  transition: all 0.2s !important;
+  padding: 16px 18px !important;
+  background: #F8F9FC !important;
+  border: 2px solid transparent !important;
+  border-radius: 12px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: #1A1D26 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   box-sizing: border-box !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
@@ -86,107 +104,74 @@
 .form-group input[type="password"]:focus,
 .form-group input[type="text"]:focus,
 .form-group input[type="email"]:focus,
-.register-input-with-icon:focus,
-.form-group input[type="email"].register-input-with-icon:focus,
-.form-group input[type="text"].register-input-with-icon:focus,
-.register-input-password:focus {
+.register-input-with-icon:focus {
   outline: none !important;
-  border-color: #000000 !important;
-  border-bottom-width: 2px !important;
-  background-color: #FFFFFF !important;
-  color: #000000 !important;
-}
-
-.form-group input:focus:not(:placeholder-shown),
-.form-group input[type="password"]:focus:not(:placeholder-shown),
-.form-group input[type="text"]:focus:not(:placeholder-shown),
-.form-group input[type="email"]:focus:not(:placeholder-shown) {
-  color: #000000 !important;
-}
-
-.form-group input:not(:placeholder-shown),
-.form-group input[type="password"]:not(:placeholder-shown),
-.form-group input[type="text"]:not(:placeholder-shown),
-.form-group input[type="email"]:not(:placeholder-shown),
-.register-input-with-icon:not(:placeholder-shown),
-.form-group input[type="email"].register-input-with-icon:not(:placeholder-shown),
-.form-group input[type="text"].register-input-with-icon:not(:placeholder-shown),
-.register-input-password:not(:placeholder-shown) {
-  color: #000000 !important;
-  background-color: #FFFFFF !important;
+  border-color: #5A6DFF !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 0 0 4px rgba(90, 109, 255, 0.1) !important;
 }
 
 .form-group input::placeholder,
 .form-group input[type="password"]::placeholder,
 .form-group input[type="text"]::placeholder,
 .form-group input[type="email"]::placeholder {
-  color: rgba(0, 0, 0, 0.5) !important;
-  transition: opacity 0.2s !important;
+  color: #9CA3AF !important;
+  font-weight: 500 !important;
   opacity: 1 !important;
 }
 
+.form-group input:not(:placeholder-shown),
+.form-group input[type="password"]:not(:placeholder-shown),
+.form-group input[type="text"]:not(:placeholder-shown),
+.form-group input[type="email"]:not(:placeholder-shown),
+.register-input-with-icon:not(:placeholder-shown) {
+  background: #FFFFFF !important;
+  border-color: #E5E7EB !important;
+  color: #1A1D26 !important;
+}
+
+.form-group:focus-within input,
+.form-group:focus-within .register-input-with-icon {
+  border-color: #5A6DFF !important;
+  background: #FFFFFF !important;
+}
+
+/* Ícones nos Inputs */
 .register-input-icon {
   position: absolute;
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: #1F1F1F;
+  color: #9CA3AF;
   pointer-events: none;
-  opacity: 0.5;
   z-index: 2;
-  transition: opacity 0.2s;
+  transition: color 0.2s;
   width: 20px;
   height: 20px;
   flex-shrink: 0;
   display: block;
 }
 
-.form-group:focus-within .register-input-icon {
-  opacity: 1;
-}
-
-.form-group input:not(:placeholder-shown) ~ .register-input-icon,
+.form-group:focus-within .register-input-icon,
 .form-group:has(input:not(:placeholder-shown)) .register-input-icon {
-  opacity: 1;
+  color: #5A6DFF;
 }
 
 .register-input-with-icon,
 .form-group input[type="email"].register-input-with-icon,
 .form-group input[type="text"].register-input-with-icon {
-  padding: 20px 16px 20px 48px !important;
+  padding: 16px 18px 16px 48px !important;
   position: relative;
   z-index: 1;
-  width: 100% !important;
-  background-color: rgba(255, 255, 255, 0.5) !important;
-  border: 1px solid rgba(0, 0, 0, 0.5) !important;
-  border-bottom-width: 2px !important;
-  border-radius: 6px !important;
-  font-size: 14px !important;
-  font-weight: 700 !important;
-  color: rgba(0, 0, 0, 0.5) !important;
-  transition: all 0.2s !important;
-  box-sizing: border-box !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
-  font-family: inherit !important;
-  margin: 0 !important;
-  line-height: normal !important;
-  height: auto !important;
-  min-height: auto !important;
-  max-height: none !important;
 }
 
-.form-group:has(.register-input-icon) .form-group input:not(.register-input-with-icon) {
-  padding-left: 40px;
-}
-
+/* Campo de Senha */
 .form-group-password {
   position: relative;
 }
 
 .register-input-password {
-  padding-right: 48px !important;
+  padding-right: 52px !important;
 }
 
 .password-toggle {
@@ -202,20 +187,19 @@
   align-items: center;
   justify-content: center;
   z-index: 2;
-  opacity: 0.5;
-  transition: opacity 0.2s;
+  opacity: 0.4;
+  transition: all 0.2s;
+  border-radius: 8px;
 }
 
-.form-group-password:focus-within .password-toggle {
-  opacity: 1;
-}
-
+.form-group-password:focus-within .password-toggle,
 .form-group-password:has(.register-input-password:not(:placeholder-shown)) .password-toggle {
-  opacity: 1;
+  opacity: 0.7;
 }
 
 .password-toggle:hover {
   opacity: 1;
+  background: rgba(90, 109, 255, 0.08);
 }
 
 .password-toggle-icon {
@@ -224,34 +208,27 @@
   display: block;
 }
 
-.form-group:focus-within input,
-.form-group:focus-within .register-input-with-icon,
-.form-group:focus-within input[type="email"].register-input-with-icon {
-  border-color: #000000 !important;
-  background-color: #FFFFFF !important;
-  color: #000000 !important;
-}
-
+/* Dropdown de Email */
 .register-email-dropdown {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 8px);
   left: 0;
   right: 0;
-  background-color: #FFFFFF;
-  border: 1px solid #E5E5E5;
-  border-radius: 8px;
-  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
-  max-height: 242px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  max-height: 240px;
   overflow-y: auto;
-  overflow-x: hidden;
   z-index: 1000;
-  margin-top: 4px;
   opacity: 1;
-  transition: opacity 0.3s ease;
+  transform: translateY(0);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .register-email-dropdown.closing {
   opacity: 0;
+  transform: translateY(-8px);
 }
 
 .register-email-dropdown::-webkit-scrollbar {
@@ -264,24 +241,21 @@
 
 .register-email-dropdown::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.08);
-  border-radius: 3px;
-}
-
-.register-email-dropdown::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
 }
 
 .register-email-suggestion {
   width: 100%;
-  padding: 12px 16px;
-  background-color: transparent;
+  padding: 14px 18px;
+  background: transparent;
   border: none;
-  border-bottom: 1px solid #E5E5E5;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
   text-align: left;
   font-size: 14px;
-  color: #525866;
+  font-weight: 500;
+  color: #4B5563;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.15s;
 }
 
 .register-email-suggestion:last-child {
@@ -289,33 +263,52 @@
 }
 
 .register-email-suggestion:hover {
-  background-color: #F5F5F5;
+  background: rgba(90, 109, 255, 0.06);
+  color: #5A6DFF;
 }
 
+/* Mensagem de Erro */
 .error-message {
-  padding: 12px 16px;
-  background-color: #fee;
-  border: 1px solid #fcc;
-  border-radius: 8px;
-  color: #c33;
+  padding: 14px 18px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.16);
+  border-radius: 12px;
+  color: #DC2626;
   font-size: 14px;
+  font-weight: 500;
+  animation: shake 0.4s ease-out;
 }
 
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* Botão de Cadastro */
 .register-button {
-  padding: 14px 24px;
-  background: #FF4D4D;
+  padding: 16px 24px;
+  background: #5A6DFF;
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 8px;
 }
 
 .register-button:hover:not(:disabled) {
+  background: #4A5AE0;
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(255, 77, 77, 0.3);
+  box-shadow: 0 8px 24px rgba(90, 109, 255, 0.32);
+}
+
+.register-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .register-button:disabled {
@@ -323,44 +316,51 @@
   cursor: not-allowed;
 }
 
+/* Footer */
 .register-footer {
-  margin-top: 20px;
+  margin-top: 24px;
   text-align: center;
 }
 
 .register-footer p {
   margin: 0;
   font-size: 14px;
-  color: #666;
+  color: #6B7280;
 }
 
 .register-footer a {
-  color: #FF4D4D;
+  color: #5A6DFF;
   text-decoration: none;
   font-weight: 600;
-  transition: color 0.2s ease;
+  transition: all 0.2s;
 }
 
 .register-footer a:hover {
-  color: #ff6666;
+  color: #4A5AE0;
 }
+
+/* ============================================
+   RESPONSIVO
+   ============================================ */
 
 @media (max-width: 768px) {
   .admin-register-page {
-    padding: 15px;
+    padding: 20px;
+    align-items: flex-start;
+    padding-top: 6vh;
   }
 
   .register-container {
-    padding: 30px 24px;
-    max-width: 100%;
+    padding: 32px 28px;
+    border-radius: 16px;
+  }
+
+  .register-header {
+    margin-bottom: 24px;
   }
 
   .register-header h1 {
     font-size: 24px;
-  }
-
-  .register-subtitle {
-    font-size: 13px;
   }
 
   .form-group input,
@@ -368,12 +368,12 @@
   .form-group input[type="text"],
   .form-group input[type="email"]:not(.register-input-with-icon),
   .register-input-with-icon {
-    padding: 18px 14px !important;
-    font-size: 16px !important; /* Evita zoom no iOS */
+    padding: 15px 16px !important;
+    font-size: 16px !important;
   }
 
   .register-input-with-icon {
-    padding: 18px 14px 18px 44px !important;
+    padding: 15px 16px 15px 46px !important;
   }
 
   .register-input-icon {
@@ -383,24 +383,26 @@
   }
 
   .register-button {
-    padding: 16px 24px;
-    font-size: 16px;
+    padding: 15px 22px;
+    font-size: 15px;
   }
 }
 
 @media (max-width: 480px) {
   .admin-register-page {
-    padding: 15px;
-    align-items: center;
+    padding: 16px;
+    padding-top: 4vh;
+    background: #FFFFFF;
   }
 
   .register-container {
-    padding: 24px 20px;
-    border-radius: 8px;
+    padding: 28px 18px;
+    box-shadow: none;
+    max-width: 100%;
   }
 
   .register-header {
-    margin-bottom: 24px;
+    margin-bottom: 22px;
   }
 
   .register-header h1 {
@@ -408,11 +410,11 @@
   }
 
   .register-subtitle {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .register-form {
-    gap: 8px;
+    gap: 12px;
   }
 
   .form-group input,
@@ -420,26 +422,26 @@
   .form-group input[type="text"],
   .form-group input[type="email"]:not(.register-input-with-icon),
   .register-input-with-icon {
-    padding: 16px 12px !important;
-    font-size: 16px !important;
+    padding: 14px 15px !important;
+    border-radius: 10px !important;
   }
 
   .register-input-with-icon {
-    padding: 16px 12px 16px 40px !important;
+    padding: 14px 15px 14px 42px !important;
   }
 
   .register-input-icon {
-    left: 12px;
-    width: 16px;
-    height: 16px;
+    left: 13px;
+    width: 17px;
+    height: 17px;
   }
 
   .register-input-password {
-    padding-right: 44px !important;
+    padding-right: 48px !important;
   }
 
   .password-toggle {
-    right: 12px;
+    right: 14px;
   }
 
   .password-toggle-icon {
@@ -449,24 +451,31 @@
 
   .register-email-dropdown {
     max-height: 200px;
+    border-radius: 10px;
   }
 
   .register-email-suggestion {
-    padding: 10px 14px;
+    padding: 12px 15px;
+    font-size: 14px;
+  }
+
+  .error-message {
+    padding: 12px 14px;
     font-size: 13px;
+    border-radius: 10px;
   }
 
   .register-button {
     padding: 14px 20px;
+    border-radius: 10px;
     font-size: 15px;
   }
 
   .register-footer {
-    margin-top: 16px;
+    margin-top: 20px;
   }
 
   .register-footer p {
     font-size: 13px;
   }
 }
-

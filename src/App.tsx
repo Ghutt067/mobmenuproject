@@ -203,9 +203,13 @@ function App() {
       if (luminance > 0.5) {
         // Cor clara: borda mais escura (misturar com preto)
         root.style.setProperty('--store-menu-border-color', `color-mix(in srgb, ${backgroundColor} 85%, black)`);
+        // Cor de fundo clara: input deve ser cinza
+        root.style.setProperty('--store-input-background-color', 'rgba(255, 255, 255, 0.5)');
       } else {
         // Cor escura: borda mais clara (misturar com branco)
         root.style.setProperty('--store-menu-border-color', `color-mix(in srgb, ${backgroundColor} 85%, white)`);
+        // Cor de fundo escura: input deve ser branco
+        root.style.setProperty('--store-input-background-color', '#FFFFFF');
       }
     } else {
       // Valores padrão
@@ -215,6 +219,7 @@ function App() {
       root.style.setProperty('--store-text-color', '#000000');
       root.style.setProperty('--store-promo-banner-bg-color', '#FDD8A7');
       root.style.setProperty('--store-menu-border-color', 'color-mix(in srgb, #FFFFFF 85%, black)');
+      root.style.setProperty('--store-input-background-color', 'rgba(255, 255, 255, 0.5)');
       root.style.setProperty('--store-icon-filter', 'brightness(0) saturate(100%)');
     }
   }, [store?.customizations]);

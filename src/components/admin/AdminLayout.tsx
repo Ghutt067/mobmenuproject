@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,6 +15,24 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Aplicar cores da personalização ao ícone de menu
+  useEffect(() => {
+    const root = document.documentElement;
+    const customizations = store?.customizations;
+    
+    if (customizations) {
+      const primaryColor = customizations.primaryColor || '#FF6B35';
+      
+      // Aplicar cor primária da personalização ao ícone de menu
+      root.style.setProperty('--admin-menu-icon-color', primaryColor);
+      root.style.setProperty('--admin-primary-color', primaryColor);
+    } else {
+      // Valores padrão
+      root.style.setProperty('--admin-menu-icon-color', '#FFFFFF');
+      root.style.setProperty('--admin-primary-color', '#FF6B35');
+    }
+  }, [store?.customizations]);
 
   const handleLogout = async () => {
     await logout();

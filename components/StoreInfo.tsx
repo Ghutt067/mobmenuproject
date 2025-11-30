@@ -139,7 +139,7 @@ const StoreInfo: React.FC = () => {
               <div className="store-info-content">
                 <span className="store-info-label">Horário:</span>
                 <span className="store-info-value store-info-time-value">
-                  Aberto até {formattedClosingTime}
+                  Até {formattedClosingTime}
                 </span>
               </div>
             </div>

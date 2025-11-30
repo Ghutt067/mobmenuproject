@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../contexts/StoreContext';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/admin/AdminLayout';
 import ColorPicker from '../../components/ColorPicker';
+import CustomDropdown from '../../components/CustomDropdown';
 import addImageIcon from '../../icons/addimage.svg';
 import trashIcon from '../../icons/trash-svgrepo-com.svg';
 import { deleteImageFromStorage } from '../../utils/storageHelper';
@@ -14,7 +16,66 @@ import { formatPrice } from '../../utils/priceFormatter';
 import './Personalization.css';
 import '../../components/PromoBanner.css';
 
+// Estilos inline para as animações do banner promocional
+const promoBannerAnimationStyles = `
+  .promo-text.animation-blink {
+    animation: blinkAnimation var(--animation-speed, 1s) ease-in-out infinite;
+  }
+  .promo-text.animation-slide {
+    animation: slideAnimation var(--animation-speed, 2s) ease-in-out infinite;
+    white-space: nowrap;
+    overflow: visible;
+    display: inline-block;
+  }
+  .promo-text.animation-pulse {
+    animation: pulseAnimation var(--animation-speed, 1.5s) ease-in-out infinite;
+  }
+  .promo-text.animation-shimmer {
+    position: relative;
+    display: inline-block;
+    background-size: 250% 100%, auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-repeat: no-repeat, padding-box;
+    background-image: 
+      linear-gradient(90deg, 
+        transparent calc(50% - var(--spread, 50px)), 
+        rgba(255, 255, 255, 0) calc(50% - var(--spread, 50px) + 15px),
+        rgba(255, 255, 255, 0.3) calc(50% - var(--spread, 50px) + 25px),
+        rgba(255, 255, 255, 0.6) calc(50% - var(--spread, 50px) + 35px),
+        rgba(255, 255, 255, 0.9) calc(50% - 10px),
+        rgba(255, 255, 255, 0.95) calc(50% - 5px),
+        rgba(255, 255, 255, 0.95) calc(50% + 5px),
+        rgba(255, 255, 255, 0.9) calc(50% + 10px),
+        rgba(255, 255, 255, 0.6) calc(50% + var(--spread, 50px) - 35px),
+        rgba(255, 255, 255, 0.3) calc(50% + var(--spread, 50px) - 25px),
+        rgba(255, 255, 255, 0) calc(50% + var(--spread, 50px) - 15px),
+        transparent calc(50% + var(--spread, 50px))
+      ),
+      linear-gradient(var(--text-color, #000), var(--text-color, #000));
+    animation: shimmerAnimation var(--animation-speed, 2s) linear infinite;
+  }
+  @keyframes blinkAnimation {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.3; }
+  }
+  @keyframes slideAnimation {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+  }
+  @keyframes pulseAnimation {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  @keyframes shimmerAnimation {
+    0% { background-position: 100% center, 0% center; }
+    100% { background-position: 0% center, 0% center; }
+  }
+`;
+
 export default function AdminPersonalization() {
+  const navigate = useNavigate();
   const { store, loading: storeLoading, loadStoreByAdminUser, reloadCustomizations } = useStore();
   const { user, loading: authLoading } = useAuth();
   const [message, setMessage] = useState('');
@@ -73,6 +134,9 @@ export default function AdminPersonalization() {
   const [productsLoading, setProductsLoading] = useState(false);
   const [searchProductTerm, setSearchProductTerm] = useState('');
   const [savingRecommendedProducts, setSavingRecommendedProducts] = useState(false);
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [searchAddProductTerm, setSearchAddProductTerm] = useState('');
+  const [showAddProductChoiceModal, setShowAddProductChoiceModal] = useState(false);
 
   // Estados para pedido mínimo
   const [minimumOrderValue, setMinimumOrderValue] = useState<number>(0);
@@ -1003,6 +1067,98 @@ export default function AdminPersonalization() {
     setRecommendedProductIds(prev => prev.filter(id => id !== productId));
   };
 
+  const handleAddProduct = (productId: string) => {
+    if (recommendedProductIds.length >= 15) {
+      setMessage('⚠️ Máximo de 15 produtos recomendados permitido');
+      return;
+    }
+    if (!recommendedProductIds.includes(productId)) {
+      setRecommendedProductIds(prev => [...prev, productId]);
+    }
+  };
+
+  // Estados para drag and drop
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', index.toString());
+    
+    // Criar uma imagem personalizada para o drag sem fade
+    const dragElement = e.currentTarget.cloneNode(true) as HTMLElement;
+    const rect = e.currentTarget.getBoundingClientRect();
+    
+    // Configurar o elemento clonado com estilos exatos
+    dragElement.style.position = 'fixed';
+    dragElement.style.top = '-9999px';
+    dragElement.style.left = '-9999px';
+    dragElement.style.opacity = '1';
+    dragElement.style.width = `${rect.width}px`;
+    dragElement.style.height = `${rect.height}px`;
+    dragElement.style.margin = '0';
+    dragElement.style.padding = '12px';
+    dragElement.style.backgroundColor = '#f9f9f9';
+    dragElement.style.border = '1px solid #e0e0e0';
+    dragElement.style.borderRadius = '8px';
+    dragElement.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+    dragElement.style.pointerEvents = 'none';
+    dragElement.style.zIndex = '10000';
+    
+    document.body.appendChild(dragElement);
+    
+    // Calcular offset do mouse dentro do elemento
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Usar o elemento clonado como imagem de drag
+    e.dataTransfer.setDragImage(dragElement, x, y);
+    
+    // Remover o elemento clonado após um pequeno delay
+    setTimeout(() => {
+      if (document.body.contains(dragElement)) {
+        document.body.removeChild(dragElement);
+      }
+    }, 0);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    setRecommendedProductIds(prev => {
+      const newIds = [...prev];
+      const [removed] = newIds.splice(draggedIndex, 1);
+      newIds.splice(dropIndex, 0, removed);
+      return newIds;
+    });
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   const handleClearAll = () => {
     if (confirm('Tem certeza que deseja remover todos os produtos recomendados?')) {
       setRecommendedProductIds([]);
@@ -1129,6 +1285,18 @@ export default function AdminPersonalization() {
   const selectedProducts = recommendedProductIds
     .map(id => availableProducts.find(p => p.id === id))
     .filter((p): p is Product => p !== undefined);
+
+  // Produtos disponíveis para adicionar (excluindo os já selecionados)
+  const availableToAdd = availableProducts.filter(
+    product => !recommendedProductIds.includes(product.id)
+  );
+
+  // Filtrar produtos disponíveis para adicionar por termo de busca
+  const filteredAvailableToAdd = availableToAdd.filter(product => {
+    if (!searchAddProductTerm.trim()) return true;
+    const searchLower = searchAddProductTerm.toLowerCase();
+    return product.title.toLowerCase().includes(searchLower);
+  });
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -1929,6 +2097,7 @@ export default function AdminPersonalization() {
 
   return (
     <AdminLayout>
+      <style>{promoBannerAnimationStyles}</style>
       {/* Modal de Edição de Imagem */}
       {isEditing && imageToEdit && (
         <div className="editor-modal-overlay" onClick={handleCancelEdit} style={{ zIndex: 10000 }}>
@@ -2209,8 +2378,19 @@ export default function AdminPersonalization() {
                           margin: 0,
                           cursor: 'pointer',
                           ...(!promoBannerUseGradient ? { color: promoBannerTextColor } : {}),
+                          ...(promoBannerAnimation === 'shimmer' ? {
+                            '--text-color': promoBannerTextColor,
+                            '--spread': '50px'
+                          } : {}),
+                          color: promoBannerAnimation !== 'rotate' && promoBannerAnimation !== 'shimmer' ? promoBannerTextColor : undefined,
                           ...(promoBannerUseGradient ? {
-                            '--animation-speed': promoBannerAnimationSpeed
+                            '--animation-speed': (() => {
+                              // Durações base para cada animação (mais lentas)
+                              const baseDuration = promoBannerAnimation === 'blink' ? 2 : promoBannerAnimation === 'slide' ? 4 : promoBannerAnimation === 'shimmer' ? 2 : 3;
+                              // Calcular duração: quanto maior a velocidade, menor a duração
+                              const calculatedDuration = baseDuration / promoBannerAnimationSpeed;
+                              return `${calculatedDuration}s`;
+                            })()
                           } : {})
                         } as React.CSSProperties}
                         title="Clique duas vezes para editar"
@@ -2230,28 +2410,18 @@ export default function AdminPersonalization() {
                     checked={promoBannerUseGradient}
                     onChange={(e) => setPromoBannerUseGradient(e.target.checked)}
                   />
-                  <label htmlFor="promoBannerUseGradientToggle">Toggle</label>
-                  <select
+                  <label htmlFor="promoBannerUseGradientToggle" style={{ display: 'block', margin: 'auto 0' }}>Toggle</label>
+                  <CustomDropdown
                     value={promoBannerAnimation}
-                    onChange={(e) => setPromoBannerAnimation(e.target.value)}
+                    onChange={setPromoBannerAnimation}
                     disabled={!promoBannerUseGradient}
-                    style={{
-                      padding: '4px 8px',
-                      fontSize: '14px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      backgroundColor: promoBannerUseGradient ? '#fff' : '#f5f5f5',
-                      color: '#333',
-                      cursor: promoBannerUseGradient ? 'pointer' : 'not-allowed',
-                      opacity: promoBannerUseGradient ? 1 : 0.6
-                    }}
-                  >
-                    <option value="gradient" style={{ color: '#333' }}>Gradiente</option>
-                    <option value="blink" style={{ color: '#333' }}>Piscar</option>
-                    <option value="slide" style={{ color: '#333' }}>Deslizar</option>
-                    <option value="pulse" style={{ color: '#333' }}>Pulsar</option>
-                    <option value="rotate" style={{ color: '#333' }}>Rotação de Cores</option>
-                  </select>
+                    options={[
+                      { value: 'blink', label: 'Piscar' },
+                      { value: 'slide', label: 'Deslizar' },
+                      { value: 'pulse', label: 'Pulsar' },
+                      { value: 'shimmer', label: 'Shimmer' }
+                    ]}
+                  />
                   <span
                     onClick={() => {
                       if (!promoBannerUseGradient) return;
@@ -2265,17 +2435,17 @@ export default function AdminPersonalization() {
                     }}
                     style={{
                       marginLeft: '8px',
-                      padding: '4px 12px',
+                      padding: '4px 8px',
                       fontSize: '14px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      backgroundColor: promoBannerUseGradient ? '#fff' : '#f5f5f5',
-                      color: '#333',
+                      color: promoBannerUseGradient ? '#333' : '#666',
                       cursor: promoBannerUseGradient ? 'pointer' : 'not-allowed',
                       opacity: promoBannerUseGradient ? 1 : 0.6,
                       userSelect: 'none',
-                      display: 'inline-block',
-                      minWidth: '40px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      lineHeight: '1',
+                      minWidth: '50px',
                       textAlign: 'center'
                     }}
                   >
@@ -2300,7 +2470,7 @@ export default function AdminPersonalization() {
             <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', gap: '16px', flexWrap: 'wrap', width: '100%' }}>
               {/* Cor Primária */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexBasis: 'calc(50% - 8px)', minWidth: '200px', maxWidth: 'calc(50% - 8px)' }}>
-                <span style={{ fontSize: '14px', fontWeight: '500', color: '#333', margin: 0, padding: 0, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '14px', fontWeight: '500', color: '#333', margin: 0, padding: 0, whiteSpace: 'nowrap', width: '120px', flexShrink: 0 }}>
                   Cor do botão 1:
                 </span>
                 <ColorPicker
@@ -2312,7 +2482,7 @@ export default function AdminPersonalization() {
 
               {/* Cor Secundária */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexBasis: 'calc(50% - 8px)', minWidth: '200px', maxWidth: 'calc(50% - 8px)' }}>
-                <span style={{ fontSize: '14px', fontWeight: '500', color: '#333', margin: 0, padding: 0, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '14px', fontWeight: '500', color: '#333', margin: 0, padding: 0, whiteSpace: 'nowrap', width: '120px', flexShrink: 0 }}>
                   Cor do botão 2:
                 </span>
                 <ColorPicker
@@ -2324,7 +2494,7 @@ export default function AdminPersonalization() {
 
               {/* Cor de Fundo */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexBasis: 'calc(50% - 8px)', minWidth: '200px', maxWidth: 'calc(50% - 8px)' }}>
-                <span style={{ fontSize: '14px', fontWeight: '500', color: '#333', margin: 0, padding: 0, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '14px', fontWeight: '500', color: '#333', margin: 0, padding: 0, whiteSpace: 'nowrap', width: '120px', flexShrink: 0 }}>
                   Cor de Fundo:
                 </span>
                 <ColorPicker
@@ -2336,7 +2506,7 @@ export default function AdminPersonalization() {
 
               {/* Cor do Texto */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexBasis: 'calc(50% - 8px)', minWidth: '200px', maxWidth: 'calc(50% - 8px)' }}>
-                <span style={{ fontSize: '14px', fontWeight: '500', color: '#333', margin: 0, padding: 0, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '14px', fontWeight: '500', color: '#333', margin: 0, padding: 0, whiteSpace: 'nowrap', width: '120px', flexShrink: 0 }}>
                   Cor do Texto:
                 </span>
                 <ColorPicker
@@ -2415,51 +2585,6 @@ export default function AdminPersonalization() {
           </div>
         </div>
 
-        {/* Seção de Pedido Mínimo */}
-        <div className="form-container" style={{ marginTop: '30px', display: 'block' }}>
-          <h2>Pedido Mínimo</h2>
-          <p className="form-description">
-            Configure o valor mínimo que o cliente precisa atingir para finalizar o pedido. Deixe em R$ 0,00 para não ter pedido mínimo.
-          </p>
-
-          <div className="form-group" style={{ alignItems: 'flex-start', textAlign: 'left' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '400px' }}>
-              <label style={{ fontSize: '16px', fontWeight: '600', color: '#333', margin: 0 }}>
-                Valor Mínimo do Pedido
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px', fontWeight: '600', color: '#333' }}>R$</span>
-                <input
-                  type="text"
-                  value={minimumOrderValueDisplay}
-                  onChange={(e) => handleMinimumOrderValueChange(e.target.value)}
-                  placeholder="0,00"
-                  style={{
-                    flex: 1,
-                    padding: '12px 16px',
-                    fontSize: '16px',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    boxSizing: 'border-box',
-                    fontFamily: 'monospace'
-                  }}
-                />
-              </div>
-              <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
-                {minimumOrderValue === 0 
-                  ? 'Sem pedido mínimo configurado' 
-                  : `Pedido mínimo: ${formatPrice((minimumOrderValue / 100).toFixed(2).replace('.', ','))}`}
-              </p>
-
-              {savingMinimumOrder && (
-                <div style={{ fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
-                  Salvando configuração...
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Seção de Produtos Recomendados */}
         <div className="form-container" style={{ marginTop: '30px', display: 'block' }}>
           <h2>Produtos Recomendados</h2>
@@ -2468,6 +2593,29 @@ export default function AdminPersonalization() {
           </p>
 
           <div className="form-group" style={{ alignItems: 'flex-start', textAlign: 'left' }}>
+            {/* Botão Add */}
+            <div style={{ width: '100%', marginBottom: '24px' }}>
+              <button
+                onClick={() => setShowAddProductChoiceModal(true)}
+                disabled={recommendedProductIds.length >= 15}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#fff',
+                  background: recommendedProductIds.length >= 15 ? '#ccc' : '#007bff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: recommendedProductIds.length >= 15 ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                ➕ Adicionar Produto
+              </button>
+            </div>
+
             {/* Produtos Selecionados */}
             {selectedProducts.length > 0 && (
               <div style={{ width: '100%', marginBottom: '24px' }}>
@@ -2494,17 +2642,28 @@ export default function AdminPersonalization() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {selectedProducts.map((product, index) => {
                     const productImage = getProductImage(product.image);
+                    const isDragging = draggedIndex === index;
+                    const isDragOver = dragOverIndex === index;
                     return (
                       <div
                         key={product.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, index)}
+                        onDragEnd={handleDragEnd}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '12px',
                           padding: '12px',
-                          backgroundColor: '#f9f9f9',
+                          backgroundColor: isDragging ? '#e3f2fd' : isDragOver ? '#f0f0f0' : '#f9f9f9',
                           borderRadius: '8px',
-                          border: '1px solid #e0e0e0'
+                          border: isDragOver ? '2px solid #007bff' : '1px solid #e0e0e0',
+                          cursor: isDragging ? 'grabbing' : 'grab',
+                          opacity: isDragging ? 0.3 : 1,
+                          transition: isDragging ? 'none' : 'all 0.2s'
                         }}
                       >
                         <img
@@ -2515,7 +2674,8 @@ export default function AdminPersonalization() {
                             height: '60px',
                             objectFit: 'cover',
                             borderRadius: '6px',
-                            flexShrink: 0
+                            flexShrink: 0,
+                            pointerEvents: 'none'
                           }}
                         />
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -2526,43 +2686,13 @@ export default function AdminPersonalization() {
                             {formatPrice(product.newPrice)}
                           </p>
                         </div>
-                        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', gap: '4px', flexShrink: 0, alignItems: 'stretch', height: '100%' }}>
                           <button
-                            onClick={() => handleMoveProduct(index, 'up')}
-                            disabled={index === 0}
-                            style={{
-                              padding: '6px',
-                              fontSize: '16px',
-                              background: index === 0 ? '#f0f0f0' : '#007bff',
-                              color: index === 0 ? '#999' : '#fff',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: index === 0 ? 'not-allowed' : 'pointer',
-                              opacity: index === 0 ? 0.5 : 1
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveProduct(product.id);
                             }}
-                            title="Mover para cima"
-                          >
-                            ↑
-                          </button>
-                          <button
-                            onClick={() => handleMoveProduct(index, 'down')}
-                            disabled={index === selectedProducts.length - 1}
-                            style={{
-                              padding: '6px',
-                              fontSize: '16px',
-                              background: index === selectedProducts.length - 1 ? '#f0f0f0' : '#007bff',
-                              color: index === selectedProducts.length - 1 ? '#999' : '#fff',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: index === selectedProducts.length - 1 ? 'not-allowed' : 'pointer',
-                              opacity: index === selectedProducts.length - 1 ? 0.5 : 1
-                            }}
-                            title="Mover para baixo"
-                          >
-                            ↓
-                          </button>
-                          <button
-                            onClick={() => handleRemoveProduct(product.id)}
+                            onMouseDown={(e) => e.stopPropagation()}
                             style={{
                               padding: '6px',
                               background: '#dc3545',
@@ -2578,6 +2708,43 @@ export default function AdminPersonalization() {
                           >
                             <img src={trashIcon} alt="Remover" style={{ width: '16px', height: '16px', filter: 'brightness(0) invert(1)' }} />
                           </button>
+                          {/* Drag Handle */}
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '3px',
+                              padding: '0',
+                              cursor: 'grab',
+                              flexShrink: 0,
+                              backgroundColor: '#e0e0e0',
+                              borderRadius: '0 8px 8px 0',
+                              color: '#666',
+                              userSelect: 'none',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              height: '100%',
+                              margin: '-12px -12px -12px 0',
+                              paddingLeft: '8px',
+                              paddingRight: '8px'
+                            }}
+                            title="Arrastar para reordenar"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <line x1="3" y1="9" x2="21" y2="9"></line>
+                              <line x1="3" y1="15" x2="21" y2="15"></line>
+                            </svg>
+                          </div>
                         </div>
                       </div>
                     );
@@ -2586,147 +2753,268 @@ export default function AdminPersonalization() {
               </div>
             )}
 
-            {/* Busca de Produtos */}
-            <div style={{ width: '100%', marginBottom: '16px' }}>
-              <input
-                type="text"
-                placeholder="Buscar produtos..."
-                value={searchProductTerm}
-                onChange={(e) => setSearchProductTerm(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  fontSize: '14px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
+          </div>
+        </div>
 
-            {/* Lista de Produtos Disponíveis */}
-            {productsLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                Carregando produtos...
+        {/* Modal de escolha: Produto existente ou Criar produto */}
+        {showAddProductChoiceModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '20px'
+            }}
+            onClick={() => setShowAddProductChoiceModal(false)}
+          >
+            <div
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                width: '100%',
+                maxWidth: '400px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#333', margin: 0 }}>
+                Adicionar Produto
+              </h2>
+              <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
+                Escolha uma opção:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <button
+                  onClick={() => {
+                    setShowAddProductChoiceModal(false);
+                    setShowAddProductModal(true);
+                  }}
+                  style={{
+                    padding: '14px 20px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#fff',
+                    background: '#007bff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#0056b3';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#007bff';
+                  }}
+                >
+                  📦 Produto existente
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddProductChoiceModal(false);
+                    navigate('/admin/produtos', { state: { forRecommendedOnly: true } });
+                  }}
+                  style={{
+                    padding: '14px 20px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#fff',
+                    background: '#28a745',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#218838';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#28a745';
+                  }}
+                >
+                  ➕ Criar produto
+                </button>
               </div>
-            ) : (
-              <div style={{ width: '100%' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#333', margin: '0 0 12px 0' }}>
-                  Produtos Disponíveis ({filteredProducts.length})
-                </h3>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: '12px',
-                  maxHeight: '500px',
-                  overflowY: 'auto',
-                  padding: '8px',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '8px',
-                  backgroundColor: '#fafafa'
-                }}>
-                  {filteredProducts.map((product) => {
-                    const productImage = getProductImage(product.image);
-                    const isSelected = recommendedProductIds.includes(product.id);
-                    const isDisabled = !isSelected && recommendedProductIds.length >= 15;
-                    
-                    return (
-                      <div
-                        key={product.id}
-                        onClick={() => !isDisabled && handleToggleProduct(product.id)}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          padding: '12px',
-                          backgroundColor: isSelected ? '#e3f2fd' : '#fff',
-                          border: `2px solid ${isSelected ? '#2196f3' : '#e0e0e0'}`,
-                          borderRadius: '8px',
-                          cursor: isDisabled ? 'not-allowed' : 'pointer',
-                          opacity: isDisabled ? 0.5 : 1,
-                          transition: 'all 0.2s ease',
-                          position: 'relative'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isDisabled) {
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = 'none';
-                        }}
-                      >
-                        <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {}}
-                            onClick={(e) => e.stopPropagation()}
-                            disabled={isDisabled}
+              <button
+                onClick={() => setShowAddProductChoiceModal(false)}
+                style={{
+                  padding: '10px',
+                  fontSize: '14px',
+                  color: '#666',
+                  background: 'transparent',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  marginTop: '8px'
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal para adicionar produtos */}
+        {showAddProductModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '20px'
+            }}
+            onClick={() => setShowAddProductModal(false)}
+          >
+            <div
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                width: '100%',
+                maxWidth: '600px',
+                maxHeight: '80vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header do Modal */}
+              <div style={{ padding: '20px', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#333', margin: 0 }}>
+                  Adicionar Produto
+                </h2>
+                <button
+                  onClick={() => setShowAddProductModal(false)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    color: '#666',
+                    padding: '0',
+                    width: '30px',
+                    height: '30px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Busca */}
+              <div style={{ padding: '20px', borderBottom: '1px solid #e0e0e0' }}>
+                <input
+                  type="text"
+                  placeholder="Buscar produto..."
+                  value={searchAddProductTerm}
+                  onChange={(e) => setSearchAddProductTerm(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    fontSize: '14px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Lista de Produtos */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+                {productsLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                    Carregando produtos...
+                  </div>
+                ) : filteredAvailableToAdd.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                    {searchAddProductTerm.trim() ? 'Nenhum produto encontrado' : 'Nenhum produto disponível para adicionar'}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {filteredAvailableToAdd.map((product) => {
+                      const productImage = getProductImage(product.image);
+                      return (
+                        <div
+                          key={product.id}
+                          onClick={() => {
+                            handleAddProduct(product.id);
+                            setShowAddProductModal(false);
+                            setSearchAddProductTerm('');
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px',
+                            backgroundColor: '#f9f9f9',
+                            borderRadius: '8px',
+                            border: '1px solid #e0e0e0',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f0f0f0';
+                            e.currentTarget.style.borderColor = '#007bff';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f9f9f9';
+                            e.currentTarget.style.borderColor = '#e0e0e0';
+                          }}
+                        >
+                          <img
+                            src={productImage}
+                            alt={product.title}
                             style={{
-                              width: '20px',
-                              height: '20px',
-                              cursor: isDisabled ? 'not-allowed' : 'pointer'
+                              width: '60px',
+                              height: '60px',
+                              objectFit: 'cover',
+                              borderRadius: '6px',
+                              flexShrink: 0
                             }}
                           />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', margin: '0 0 4px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {product.title}
+                            </h4>
+                            <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
+                              {formatPrice(product.newPrice)}
+                            </p>
+                          </div>
+                          <div style={{ color: '#007bff', fontSize: '20px' }}>+</div>
                         </div>
-                        <img
-                          src={productImage}
-                          alt={product.title}
-                          style={{
-                            width: '100%',
-                            height: '120px',
-                            objectFit: 'cover',
-                            borderRadius: '6px',
-                            marginBottom: '8px'
-                          }}
-                        />
-                        <h4 style={{
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          color: '#333',
-                          margin: '0 0 4px 0',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          lineHeight: '1.4',
-                          minHeight: '36px'
-                        }}>
-                          {product.title}
-                        </h4>
-                        <p style={{
-                          fontSize: '14px',
-                          fontWeight: '700',
-                          color: '#2196f3',
-                          margin: 0
-                        }}>
-                          {formatPrice(product.newPrice)}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-                {filteredProducts.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                    Nenhum produto encontrado
+                      );
+                    })}
                   </div>
                 )}
               </div>
-            )}
-
-            {savingRecommendedProducts && (
-              <div style={{ fontSize: '13px', color: '#666', fontStyle: 'italic', marginTop: '16px', paddingLeft: '16px' }}>
-                Salvando produtos recomendados...
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </AdminLayout>
   );
 }
+
 
 

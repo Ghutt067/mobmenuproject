@@ -128,23 +128,20 @@ function Checkout() {
   const alsoOrderProducts = useMemo(() => {
     if (alsoOrderProductIds.length === 0) return [];
     
-    // Obter IDs dos produtos que já estão no carrinho
-    const cartProductIds = new Set(cartItems.map(item => item.productId));
-    
     // Criar um mapa para manter a ordem
     const productMap = new Map<string, Product>();
     products.forEach((product) => {
-      // Inclui apenas produtos da lista que NÃO estão no carrinho
-      if (alsoOrderProductIds.includes(product.id) && !cartProductIds.has(product.id)) {
+      // Inclui todos os produtos da lista, mesmo os que já estão no carrinho
+      if (alsoOrderProductIds.includes(product.id)) {
         productMap.set(product.id, product);
       }
     });
     
-    // Retornar na ordem especificada, excluindo produtos do carrinho
+    // Retornar na ordem especificada
     return alsoOrderProductIds
       .map((id) => productMap.get(id))
       .filter((product): product is Product => product !== undefined);
-  }, [products, alsoOrderProductIds, cartItems]);
+  }, [products, alsoOrderProductIds]);
 
   // Calcular total do carrinho incluindo preços adicionais das opções
   const cartTotal = useMemo(() => {
@@ -628,8 +625,9 @@ function Checkout() {
           <span className="checkout-optional">(Opcional)</span>
         </h3>
         <div className="checkout-coupon-input-wrapper">
-          <svg className="checkout-coupon-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M2.5 5L10 10L17.5 5M2.5 15H17.5V5H2.5V15Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg className="checkout-coupon-icon" width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="m29.9 2.1c-.8-.7-1.8-1.1-2.9-1.1h-8.6c-1.2 0-2.4.5-3.3 1.4l-12.7 12.7c-.8.9-1.3 2-1.4 3.1-.1 1.2.3 2.3 1.1 3.1l8.6 8.6c.7.7 1.7 1.1 2.8 1.1 1.2 0 2.4-.5 3.3-1.4l12.7-12.7c.9-.9 1.4-2.1 1.4-3.3l.1-8.6c0-1.1-.4-2.1-1.1-2.9zm-.9 11.5c0 .7-.3 1.4-.8 1.9l-12.7 12.7c-.5.5-1.2.8-1.9.8-.6 0-1.1-.2-1.4-.6l-8.6-8.6c-.4-.3-.6-.9-.6-1.5 0-.7.3-1.3.8-1.8l12.7-12.6c.5-.6 1.2-.9 1.9-.9h8.6c.6 0 1.1.2 1.4.6.4.3.6.8.6 1.4z" fill="currentColor"/>
+            <path d="m21.1 6.2c-1.3 1.3-1.3 3.4 0 4.7.6.6 1.5 1 2.3 1s1.7-.3 2.3-1c1.3-1.3 1.3-3.4 0-4.7-1.1-1.2-3.3-1.2-4.6 0zm3.3 3.3c-.5.5-1.4.5-1.8 0-.6-.5-.6-1.4-.1-1.9.2-.2.6-.4.9-.4s.7.1.9.4c.6.5.6 1.4.1 1.9z" fill="currentColor"/>
           </svg>
           <input
             type="text"

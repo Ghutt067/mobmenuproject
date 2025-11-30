@@ -236,7 +236,7 @@
 .products-admin-page .products-by-section {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 20px;
   width: 100%;
   overflow-x: visible;
   overflow-y: visible;
@@ -246,7 +246,7 @@
 .products-admin-page .product-section-group {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0px;
   width: 100%;
   overflow-x: visible;
   overflow-y: visible;
@@ -257,7 +257,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 12px;
+  padding-bottom: 5px;
   border-bottom: 2px solid #e0e0e0;
   gap: 16px;
 }
@@ -307,7 +307,10 @@
   gap: 12px;
   overflow-x: auto;
   overflow-y: hidden;
+  padding: 10px;
   padding-bottom: 10px;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
   scrollbar-width: none; /* Firefox - ocultar scrollbar */
   -ms-overflow-style: none; /* IE e Edge - ocultar scrollbar */
   width: 100%;
