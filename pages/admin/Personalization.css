@@ -39,23 +39,26 @@
   margin-bottom: 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   animation: slideInRight 0.3s ease-out, fadeOut 0.3s ease-in 2.7s;
-  min-width: 300px;
-  max-width: 500px;
+  min-width: 200px;
+  max-width: 280px;
   padding: 16px 20px;
   font-size: 15px;
   font-weight: 500;
+  opacity: 0.85;
 }
 
 .message.floating.success {
   background: #28a745;
   color: white;
   border: none;
+  opacity: 0.85;
 }
 
 .message.floating.error {
   background: #dc3545;
   color: white;
   border: none;
+  opacity: 0.85;
 }
 
 @keyframes slideInRight {

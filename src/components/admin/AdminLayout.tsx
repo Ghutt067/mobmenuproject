@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStore } from '../../contexts/StoreContext';
+import { useStoreNavigation } from '../../hooks/useStoreNavigation';
 import './AdminLayout.css';
 
 interface AdminLayoutProps {
@@ -12,27 +13,10 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, logout } = useAuth();
   const { store } = useStore();
+  const { getStorePath } = useStoreNavigation();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Aplicar cores da personalização ao ícone de menu
-  useEffect(() => {
-    const root = document.documentElement;
-    const customizations = store?.customizations;
-    
-    if (customizations) {
-      const primaryColor = customizations.primaryColor || '#FF6B35';
-      
-      // Aplicar cor primária da personalização ao ícone de menu
-      root.style.setProperty('--admin-menu-icon-color', primaryColor);
-      root.style.setProperty('--admin-primary-color', primaryColor);
-    } else {
-      // Valores padrão
-      root.style.setProperty('--admin-menu-icon-color', '#FFFFFF');
-      root.style.setProperty('--admin-primary-color', '#FF6B35');
-    }
-  }, [store?.customizations]);
 
   const handleLogout = async () => {
     await logout();
@@ -71,10 +55,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         <nav className="sidebar-nav">
-          <Link to="/admin/dashboard" className={isActive('/admin/dashboard')} onClick={closeSidebar}>
-            <span className="nav-icon">📊</span>
-            Dashboard
-          </Link>
           <Link to="/admin/produtos" className={isActive('/admin/produtos')} onClick={closeSidebar}>
             <span className="nav-icon">🛍️</span>
             Produtos/Seções
@@ -97,9 +77,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <button onClick={handleLogout} className="logout-button">
             Sair
           </button>
-          <Link to="/" className="view-store-link">
-            Ver Loja →
-          </Link>
+          {store?.slug ? (
+            <Link to={getStorePath('/')} className="view-store-link" onClick={closeSidebar}>
+              Ver Loja →
+            </Link>
+          ) : (
+            <span className="view-store-link" style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+              Ver Loja →
+            </span>
+          )}
         </div>
       </aside>
 

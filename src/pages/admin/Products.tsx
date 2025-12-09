@@ -90,6 +90,22 @@ export default function AdminProducts() {
   const saveRecommendedProductsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSavingRecommendedProductsRef = useRef(false);
   
+  // Estados para produtos em destaque
+  const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
+  const [savingFeaturedProducts, setSavingFeaturedProducts] = useState(false);
+  const [showAddFeaturedProductChoiceModal, setShowAddFeaturedProductChoiceModal] = useState(false);
+  const [isAddingFeaturedProduct, setIsAddingFeaturedProduct] = useState(false);
+  
+  // Estados para drag and drop de produtos em destaque
+  const [featuredDraggedIndex, setFeaturedDraggedIndex] = useState<number | null>(null);
+  const [featuredDragOverIndex, setFeaturedDragOverIndex] = useState<number | null>(null);
+  
+  // Refs para controle de salvamento dos produtos em destaque
+  const isInitialFeaturedProductsLoadRef = useRef(true);
+  const previousFeaturedProductsRef = useRef<string[] | null>(null);
+  const saveFeaturedProductsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSavingFeaturedProductsRef = useRef(false);
+  
   // Estados para edição de imagem
   const [isEditing, setIsEditing] = useState(false);
   const [imageToEdit, setImageToEdit] = useState<string | null>(null);
@@ -172,6 +188,14 @@ export default function AdminProducts() {
       isInitialRecommendedProductsLoadRef.current = true;
     }
   }, [store?.customizations?.recommendedProductIds]);
+
+  // Carregar produtos em destaque do store
+  useEffect(() => {
+    if (store?.customizations?.featuredProductIds) {
+      setFeaturedProductIds(store.customizations.featuredProductIds);
+      isInitialFeaturedProductsLoadRef.current = true;
+    }
+  }, [store?.customizations?.featuredProductIds]);
 
   // Carregar produtos disponíveis
   useEffect(() => {
@@ -294,6 +318,91 @@ export default function AdminProducts() {
     };
   }, [recommendedProductIds, store?.id, storeLoading, authLoading, reloadCustomizations]);
 
+  // Salvar automaticamente quando featuredProductIds mudar
+  useEffect(() => {
+    // Ignorar na primeira renderização
+    if (isInitialFeaturedProductsLoadRef.current) {
+      isInitialFeaturedProductsLoadRef.current = false;
+      previousFeaturedProductsRef.current = [...featuredProductIds];
+      return;
+    }
+
+    // Não salvar se não houver mudanças
+    if (previousFeaturedProductsRef.current !== null && 
+        arraysEqual(previousFeaturedProductsRef.current, featuredProductIds)) {
+      return;
+    }
+
+    // Não salvar se já estiver salvando
+    if (isSavingFeaturedProductsRef.current) {
+      return;
+    }
+
+    // Atualizar valor anterior
+    previousFeaturedProductsRef.current = [...featuredProductIds];
+
+    // Limpar timeout anterior se existir
+    if (saveFeaturedProductsTimeoutRef.current) {
+      clearTimeout(saveFeaturedProductsTimeoutRef.current);
+    }
+
+    // Debounce: aguardar 800ms após a última mudança antes de salvar
+    setSavingFeaturedProducts(true);
+    saveFeaturedProductsTimeoutRef.current = setTimeout(async () => {
+      isSavingFeaturedProductsRef.current = true;
+      try {
+        // Buscar customização existente
+        const { data: existingCustomization } = await supabase
+          .from('store_customizations')
+          .select('id')
+          .eq('store_id', store.id)
+          .maybeSingle();
+
+        const updateData = {
+          featured_product_ids: featuredProductIds,
+          updated_at: new Date().toISOString()
+        };
+
+        if (existingCustomization) {
+          // Atualizar existente
+          const { error: updateError } = await supabase
+            .from('store_customizations')
+            .update(updateData)
+            .eq('store_id', store.id);
+
+          if (updateError) throw updateError;
+        } else {
+          // Criar novo
+          const { error: insertError } = await supabase
+            .from('store_customizations')
+            .insert({
+              store_id: store.id,
+              ...updateData
+            });
+
+          if (insertError) throw insertError;
+        }
+
+        // Recarregar customizações
+        await reloadCustomizations();
+        setMessage('✅ Produtos em destaque atualizados!');
+      } catch (error: any) {
+        console.error('Erro ao salvar produtos em destaque:', error);
+        setMessage(`❌ Erro ao salvar: ${error.message || 'Erro desconhecido'}`);
+      } finally {
+        setSavingFeaturedProducts(false);
+        isSavingFeaturedProductsRef.current = false;
+      }
+    }, 800);
+
+    // Cleanup
+    return () => {
+      if (saveFeaturedProductsTimeoutRef.current) {
+        clearTimeout(saveFeaturedProductsTimeoutRef.current);
+      }
+    };
+  }, [featuredProductIds, store?.id, storeLoading, authLoading, reloadCustomizations]);
+
   // Funções para gerenciar produtos recomendados
   const handleAddProduct = (productId: string) => {
     if (recommendedProductIds.length >= 15) {
@@ -313,6 +422,79 @@ export default function AdminProducts() {
     if (confirm('Tem certeza que deseja remover todos os produtos recomendados?')) {
       setRecommendedProductIds([]);
     }
+  };
+
+  // Funções para gerenciar produtos em destaque
+  const handleAddFeaturedProduct = (productId: string) => {
+    if (featuredProductIds.length >= 15) {
+      setMessage('⚠️ Máximo de 15 produtos em destaque permitido');
+      return;
+    }
+    if (!featuredProductIds.includes(productId)) {
+      setFeaturedProductIds(prev => [...prev, productId]);
+    }
+  };
+
+  const handleRemoveFeaturedProduct = (productId: string) => {
+    setFeaturedProductIds(prev => prev.filter(id => id !== productId));
+  };
+
+  const handleClearAllFeatured = () => {
+    if (confirm('Tem certeza que deseja remover todos os produtos em destaque?')) {
+      setFeaturedProductIds([]);
+    }
+  };
+
+  // Funções de drag and drop para produtos em destaque
+  const handleFeaturedDragStart = (e: React.DragEvent, index: number) => {
+    setFeaturedDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', index.toString());
+    
+    const dragElement = e.currentTarget.cloneNode(true) as HTMLElement;
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragElement.style.position = 'absolute';
+    dragElement.style.top = '-1000px';
+    dragElement.style.width = `${rect.width}px`;
+    document.body.appendChild(dragElement);
+    e.dataTransfer.setDragImage(dragElement, rect.width / 2, rect.height / 2);
+    setTimeout(() => document.body.removeChild(dragElement), 0);
+  };
+
+  const handleFeaturedDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (featuredDraggedIndex !== null && featuredDraggedIndex !== index) {
+      setFeaturedDragOverIndex(index);
+    }
+  };
+
+  const handleFeaturedDragLeave = () => {
+    setFeaturedDragOverIndex(null);
+  };
+
+  const handleFeaturedDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (featuredDraggedIndex === null || featuredDraggedIndex === dropIndex) {
+      setFeaturedDraggedIndex(null);
+      setFeaturedDragOverIndex(null);
+      return;
+    }
+
+    const newOrder = [...featuredProductIds];
+    const [removed] = newOrder.splice(featuredDraggedIndex, 1);
+    newOrder.splice(dropIndex, 0, removed);
+    
+    setFeaturedProductIds(newOrder);
+    setFeaturedDraggedIndex(null);
+    setFeaturedDragOverIndex(null);
+  };
+
+  const handleFeaturedDragEnd = () => {
+    setFeaturedDraggedIndex(null);
+    setFeaturedDragOverIndex(null);
   };
 
   // Funções de drag and drop
@@ -519,6 +701,11 @@ export default function AdminProducts() {
   // Produtos disponíveis para adicionar (excluindo os já selecionados)
   const availableToAdd = availableProducts.filter(
     product => !recommendedProductIds.includes(product.id)
+  );
+
+  // Produtos disponíveis para adicionar em destaque (excluindo os já selecionados)
+  const availableToAddFeatured = availableProducts.filter(
+    product => !featuredProductIds.includes(product.id)
   );
 
   // Filtrar produtos disponíveis para adicionar por termo de busca
@@ -2897,6 +3084,186 @@ export default function AdminProducts() {
         </div>
       )}
 
+        {/* Seção de Produtos em Destaque */}
+        {!showAddForm && !editingProduct && (
+        <div className="form-container" style={{ marginTop: '30px', display: 'block' }}>
+          <h2>Produtos em Destaque</h2>
+          <p className="form-description">
+            Configure quais produtos aparecem abaixo do banner promocional na página inicial. Os produtos aparecerão na ordem que você selecionar.
+          </p>
+
+          <div className="form-group" style={{ alignItems: 'flex-start', textAlign: 'left' }}>
+            {/* Botão Add */}
+            <div style={{ width: '100%', marginBottom: '24px' }}>
+              <button
+                onClick={() => setShowAddFeaturedProductChoiceModal(true)}
+                disabled={featuredProductIds.length >= 15}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#fff',
+                  background: featuredProductIds.length >= 15 ? '#ccc' : '#007bff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: featuredProductIds.length >= 15 ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <img src={addIcon} alt="Adicionar" style={{ width: '16px', height: '16px', filter: 'brightness(0) invert(1)' }} />
+                Adicionar produto
+              </button>
+            </div>
+
+            {/* Produtos Selecionados */}
+            {(() => {
+              const featuredSelectedProducts = featuredProductIds
+                .map(id => availableProducts.find(p => p.id === id))
+                .filter((p): p is Product => p !== undefined);
+              
+              return featuredSelectedProducts.length > 0 && (
+                <div style={{ width: '100%', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>
+                      Produtos Selecionados ({featuredSelectedProducts.length}/15)
+                    </h3>
+                    <button
+                      onClick={handleClearAllFeatured}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        color: '#dc3545',
+                        background: 'transparent',
+                        border: '1px solid #dc3545',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Limpar Todos
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {featuredSelectedProducts.map((product, index) => {
+                      const productImage = getProductImage(product.image);
+                      const isDragging = featuredDraggedIndex === index;
+                      const isDragOver = featuredDragOverIndex === index;
+                      return (
+                        <div
+                          key={product.id}
+                          draggable
+                          onDragStart={(e) => handleFeaturedDragStart(e, index)}
+                          onDragOver={(e) => handleFeaturedDragOver(e, index)}
+                          onDragLeave={handleFeaturedDragLeave}
+                          onDrop={(e) => handleFeaturedDrop(e, index)}
+                          onDragEnd={handleFeaturedDragEnd}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'stretch',
+                            gap: '12px',
+                            padding: '12px',
+                            backgroundColor: isDragging ? '#e3f2fd' : isDragOver ? '#f0f0f0' : '#f9f9f9',
+                            borderRadius: '8px',
+                            border: isDragOver ? '2px solid #007bff' : '1px solid #e0e0e0',
+                            cursor: isDragging ? 'grabbing' : 'grab',
+                            opacity: isDragging ? 0.3 : 1,
+                            transition: isDragging ? 'none' : 'all 0.2s'
+                          }}
+                        >
+                          <img
+                            src={productImage}
+                            alt={product.title}
+                            style={{
+                              width: '60px',
+                              height: '60px',
+                              objectFit: 'cover',
+                              borderRadius: '6px',
+                              flexShrink: 0,
+                              pointerEvents: 'none',
+                              alignSelf: 'center'
+                            }}
+                          />
+                          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', margin: '0 0 4px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {product.title}
+                            </h4>
+                            <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
+                              {formatPrice(product.newPrice)}
+                            </p>
+                          </div>
+                          <div style={{ display: 'flex', gap: '4px', flexShrink: 0, alignItems: 'stretch', alignSelf: 'stretch' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveFeaturedProduct(product.id);
+                              }}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              style={{
+                                padding: '6px',
+                                background: '#dc3545',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                alignSelf: 'center'
+                              }}
+                              title="Remover"
+                            >
+                              <img src={trashIcon} alt="Remover" style={{ width: '16px', height: '16px', filter: 'brightness(0) invert(1)' }} />
+                            </button>
+                            {/* Drag Handle */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '3px',
+                                padding: '0 8px',
+                                cursor: 'grab',
+                                flexShrink: 0,
+                                backgroundColor: '#e0e0e0',
+                                borderRadius: '0 8px 8px 0',
+                                color: '#666',
+                                userSelect: 'none',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '-12px -12px -12px 0',
+                                alignSelf: 'stretch'
+                              }}
+                              title="Arrastar para reordenar"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                <line x1="3" y1="15" x2="21" y2="15"></line>
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+          </div>
+        </div>
+        )}
+
         {/* Seção de Produtos Recomendados */}
         {!showAddForm && !editingProduct && (
         <div className="form-container" style={{ marginTop: '30px', display: 'block' }}>
@@ -2908,9 +3275,12 @@ export default function AdminProducts() {
           <div className="form-group" style={{ alignItems: 'flex-start', textAlign: 'left' }}>
             {/* Botão Add */}
             <div style={{ width: '100%', marginBottom: '24px' }}>
-              <button
-                onClick={() => setShowAddProductChoiceModal(true)}
-                disabled={recommendedProductIds.length >= 15}
+                <button
+                  onClick={() => {
+                    setIsAddingFeaturedProduct(false);
+                    setShowAddProductChoiceModal(true);
+                  }}
+                  disabled={recommendedProductIds.length >= 15}
                 style={{
                   padding: '10px 20px',
                   fontSize: '14px',
@@ -3112,6 +3482,7 @@ export default function AdminProducts() {
                 <button
                   onClick={() => {
                     setShowAddProductChoiceModal(false);
+                    setIsAddingFeaturedProduct(false);
                     setShowAddProductModal(true);
                   }}
                   style={{
@@ -3197,7 +3568,11 @@ export default function AdminProducts() {
               zIndex: 1000,
               padding: '20px'
             }}
-            onClick={() => setShowAddProductModal(false)}
+            onClick={() => {
+              setShowAddProductModal(false);
+              setIsAddingFeaturedProduct(false);
+              setSearchAddProductTerm('');
+            }}
           >
             <div
               style={{
@@ -3215,10 +3590,14 @@ export default function AdminProducts() {
               {/* Header do Modal */}
               <div style={{ padding: '20px', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#333', margin: 0 }}>
-                  Adicionar Produto
+                  {isAddingFeaturedProduct ? 'Adicionar Produto em Destaque' : 'Adicionar Produto'}
                 </h2>
                 <button
-                  onClick={() => setShowAddProductModal(false)}
+                  onClick={() => {
+                    setShowAddProductModal(false);
+                    setIsAddingFeaturedProduct(false);
+                    setSearchAddProductTerm('');
+                  }}
                   style={{
                     background: 'transparent',
                     border: 'none',
@@ -3261,71 +3640,200 @@ export default function AdminProducts() {
                   <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                     Carregando produtos...
                   </div>
-                ) : filteredAvailableToAdd.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                    {searchAddProductTerm.trim() ? 'Nenhum produto encontrado' : 'Nenhum produto disponível para adicionar'}
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {filteredAvailableToAdd.map((product) => {
-                      const productImage = getProductImage(product.image);
-                      return (
-                        <div
-                          key={product.id}
-                          onClick={() => {
-                            handleAddProduct(product.id);
-                            setShowAddProductModal(false);
-                            setSearchAddProductTerm('');
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            padding: '12px',
-                            backgroundColor: '#f9f9f9',
-                            borderRadius: '8px',
-                            border: '1px solid #e0e0e0',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#f0f0f0';
-                            e.currentTarget.style.borderColor = '#007bff';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#f9f9f9';
-                            e.currentTarget.style.borderColor = '#e0e0e0';
-                          }}
-                        >
-                          <img
-                            src={productImage}
-                            alt={product.title}
-                            style={{
-                              width: '60px',
-                              height: '60px',
-                              objectFit: 'cover',
-                              borderRadius: '6px',
-                              flexShrink: 0
+                ) : (() => {
+                  // Usar lista correta baseada no tipo
+                  const productList = isAddingFeaturedProduct ? availableToAddFeatured : availableToAdd;
+                  const filteredList = productList.filter(product => {
+                    if (!searchAddProductTerm.trim()) return true;
+                    const searchLower = searchAddProductTerm.toLowerCase();
+                    return product.title.toLowerCase().includes(searchLower) ||
+                           product.description1?.toLowerCase().includes(searchLower) ||
+                           product.description2?.toLowerCase().includes(searchLower);
+                  });
+                  
+                  return filteredList.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                      {searchAddProductTerm.trim() ? 'Nenhum produto encontrado' : 'Nenhum produto disponível para adicionar'}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {filteredList.map((product) => {
+                        const productImage = getProductImage(product.image);
+                        return (
+                          <div
+                            key={product.id}
+                            onClick={() => {
+                              if (isAddingFeaturedProduct) {
+                                handleAddFeaturedProduct(product.id);
+                              } else {
+                                handleAddProduct(product.id);
+                              }
+                              setShowAddProductModal(false);
+                              setIsAddingFeaturedProduct(false);
+                              setSearchAddProductTerm('');
                             }}
-                          />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', margin: '0 0 4px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {product.title}
-                            </h4>
-                            <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
-                              {formatPrice(product.newPrice)}
-                            </p>
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              padding: '12px',
+                              backgroundColor: '#f9f9f9',
+                              borderRadius: '8px',
+                              border: '1px solid #e0e0e0',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#f0f0f0';
+                              e.currentTarget.style.borderColor = '#007bff';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#f9f9f9';
+                              e.currentTarget.style.borderColor = '#e0e0e0';
+                            }}
+                          >
+                            <img
+                              src={productImage}
+                              alt={product.title}
+                              style={{
+                                width: '60px',
+                                height: '60px',
+                                objectFit: 'cover',
+                                borderRadius: '6px',
+                                flexShrink: 0
+                              }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', margin: '0 0 4px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {product.title}
+                              </h4>
+                              <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
+                                {formatPrice(product.newPrice)}
+                              </p>
+                            </div>
+                            <div style={{ color: '#007bff', fontSize: '20px' }}>+</div>
                           </div>
-                          <div style={{ color: '#007bff', fontSize: '20px' }}>+</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
         )}
+
+        {/* Modal de escolha: Produto existente ou Criar produto (Produtos em Destaque) */}
+        {showAddFeaturedProductChoiceModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '20px'
+            }}
+            onClick={() => setShowAddFeaturedProductChoiceModal(false)}
+          >
+            <div
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                width: '100%',
+                maxWidth: '400px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#333', margin: 0 }}>
+                Adicionar Produto em Destaque
+              </h2>
+              <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
+                Escolha uma opção:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <button
+                  onClick={() => {
+                    setShowAddFeaturedProductChoiceModal(false);
+                    setIsAddingFeaturedProduct(true);
+                    setShowAddProductModal(true);
+                  }}
+                  style={{
+                    padding: '14px 20px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#fff',
+                    background: '#007bff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#0056b3';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#007bff';
+                  }}
+                >
+                  📦 Produto existente
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddFeaturedProductChoiceModal(false);
+                    navigate('/admin/produtos', { state: { forFeaturedOnly: true } });
+                  }}
+                  style={{
+                    padding: '14px 20px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#fff',
+                    background: '#28a745',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#218838';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#28a745';
+                  }}
+                >
+                  ➕ Criar produto
+                </button>
+              </div>
+              <button
+                onClick={() => setShowAddFeaturedProductChoiceModal(false)}
+                style={{
+                  padding: '10px',
+                  fontSize: '14px',
+                  color: '#666',
+                  background: 'transparent',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  marginTop: '8px'
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
     </AdminLayout>
   );
 }

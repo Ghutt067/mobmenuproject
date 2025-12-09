@@ -314,10 +314,15 @@
 
 .product-text-content:has(.readmore.expand) {
   max-height: none !important;
-  min-height: auto !important;
+  min-height: 120px !important; /* Altura mínima consistente para todos os cards expandidos */
   height: auto !important;
   overflow: visible !important;
   flex-grow: 0;
+}
+
+/* Altura mínima para a descrição completa quando expandida */
+.product-full-description {
+  min-height: 80px;
 }
 
 .readmore {

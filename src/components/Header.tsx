@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import logoImage from '../assets/fequeijaologo.png';
 import menuIcon from '../icons/menu-svgrepo-com.svg';
 import closeIcon from '../icons/close-svgrepo-com.svg';
 import searchIcon from '../icons/search-alt-2-svgrepo-com.svg';
@@ -38,8 +37,8 @@ const Header: React.FC = () => {
      !location.pathname.includes('/admin') &&
      location.pathname.split('/').filter(Boolean).length <= 1);
   
-  // Usar logo customizado se existir, senão usar o padrão
-  const currentLogoUrl = store?.customizations?.logoUrl || logoImage;
+  // Usar logo customizado se existir
+  const currentLogoUrl = store?.customizations?.logoUrl;
   const logoAlt = store?.customizations?.logoAltText || store?.name || 'Logo';
 
   const handleSearchClick = () => {
@@ -309,9 +308,11 @@ const Header: React.FC = () => {
           <div className={`menu-overlay ${isOverlayExiting ? 'exiting' : ''}`} onClick={handleMenuClose}></div>
         )}
         
-        <div className={`logo-container ${isSearchOpen ? 'hidden' : ''}`}>
-          <img src={currentLogoUrl} alt={logoAlt} className="logo-image" />
-        </div>
+        {currentLogoUrl && (
+          <div className={`logo-container ${isSearchOpen ? 'hidden' : ''}`}>
+            <img src={currentLogoUrl} alt={logoAlt} className="logo-image" />
+          </div>
+        )}
         
         <div className={`search-container ${isSearchOpen ? 'expanded' : ''}`}>
           <input

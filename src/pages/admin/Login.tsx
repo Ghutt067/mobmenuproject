@@ -49,7 +49,7 @@ export default function AdminLogin() {
     'terra.com.br'
   ];
 
-  const from = (location.state as any)?.from?.pathname || '/admin/dashboard';
+  const from = (location.state as any)?.from?.pathname || '/admin/produtos';
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -173,7 +173,7 @@ export default function AdminLogin() {
       
       // Redirecionar imediatamente após login bem-sucedido
       // O StoreContext vai carregar a loja automaticamente
-      const destination = from === '/admin/dashboard' ? from : '/admin/dashboard';
+      const destination = from === '/admin/produtos' ? from : '/admin/produtos';
       
       // Usar window.location como fallback se navigate não funcionar
       try {

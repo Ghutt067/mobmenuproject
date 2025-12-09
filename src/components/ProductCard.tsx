@@ -9,7 +9,6 @@ import { formatPrice } from '../utils/priceFormatter';
 import { hasProductBasePrice, calculateMinimumOptionPrice } from '../utils/calculateProductPrice';
 import type { Product } from '../services/productService';
 import trashIcon from '../icons/trash-svgrepo-com.svg';
-import addIcon from '../icons/addicon.svg';
 import './ProductCard.css';
 
 interface ProductCardProps {
@@ -25,6 +24,7 @@ interface ProductCardProps {
   priority?: boolean; // Se true, carrega imediatamente (produtos acima da dobra)
   previewMode?: boolean; // Se true, desabilita navegação (para preview na página de personalização)
   optionGroups?: Product['optionGroups']; // Grupos de opções do produto
+  hideDescription?: boolean; // Se true, oculta descrição e botão "Ler mais"
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({
@@ -40,6 +40,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   priority = false,
   previewMode = false,
   optionGroups,
+  hideDescription = false,
 }) => {
   const { navigate } = useStoreNavigation();
   const { store } = useStore();
@@ -83,6 +84,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
     teDRef.current.style.setProperty('--gradient-normal', gradientNormal);
     teDRef.current.style.setProperty('--gradient-expanded', gradientExpanded);
   }, [store?.customizations?.backgroundColor, isExpanded]);
+
+  // Calcular cor do ícone "Ver tudo" baseado nas customizações
+  const readmoreIconColor = useMemo(() => {
+    const highContrastButtons = store?.customizations?.highContrastButtons ?? true;
+    
+    if (highContrastButtons) {
+      // Alto contraste: usar cor verde
+      return '#16A34A';
+    } else {
+      // Sem alto contraste: usar cor de texto da loja
+      return store?.customizations?.textColor || '#000000';
+    }
+  }, [store?.customizations?.highContrastButtons, store?.customizations?.textColor]);
 
   const quantity = getItemQuantity(productId);
   const cartHasItems = hasItems();
@@ -328,83 +342,107 @@ const ProductCard: React.FC<ProductCardProps> = ({
               <div key={animationKey} className="product-quantity-badge bounce-up">{quantity}</div>
             </>
           )}
-        </div>
-        <div className="product-content">
-          <div className="TeD" ref={teDRef}>
-            <div className="product-text-wrapper">
-              <div className="product-text-content readmore" ref={textContentRef}>
-                <h3 className="product-title" onClick={handleProductClick}>{title}</h3>
-                {/* Se houver description1 ou description2, mostrar eles (comportamento antigo) */}
-                {description1 && <p className="product-description" onClick={handleProductClick}>{description1}</p>}
-                {description2 && <p className="product-description" onClick={handleProductClick}>{description2}</p>}
-                
-                {/* Se não houver description1/description2 mas houver fullDescription, mostrar prévia */}
-                {!description1 && !description2 && fullDescription && !isExpanded && (
-                  <div className="product-description-preview">
-                    {fullDescription.split('\n').filter(line => line.trim()).slice(0, 2).map((line, index) => (
-                      <p key={index} className="product-description" onClick={handleProductClick}>{line}</p>
-                    ))}
-                    {fullDescription.split('\n').filter(line => line.trim()).length > 2 && (
-                      <p className="product-description" onClick={handleProductClick}>...</p>
-                    )}
-                  </div>
-                )}
-                
-                {/* Quando expandido, mostrar fullDescription completo */}
-                {isExpanded && fullDescription && (
-                  <div className="product-full-description">
-                    {fullDescription.split('\n').map((line, index) => (
-                      line ? (
-                        <p key={index} className="product-description">{line}</p>
-                      ) : (
-                        <br key={index} />
-                      )
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          {fullDescription && (
+          {hideDescription && (
             <>
-              {showReadMoreTop && !previewMode && (
-                <a 
-                  href={`/product/${productId}`} 
-                  className="readmore-link readmore-link-top" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const scrollPosition = window.scrollY || document.documentElement.scrollTop;
-                    if (scrollPosition > 0) {
-                      sessionStorage.setItem('homeScrollPosition', scrollPosition.toString());
-                    }
-                    navigate(`/produto/${productId}`);
-                  }}
-                >
-                  <img src={addIcon} alt="Ver tudo" className="readmore-icon" />
-                  <span className="readmore-text">Ver tudo</span>
-                </a>
-              )}
-            <a href="#" className="readmore-link" onClick={(e) => {
-              e.stopPropagation();
-              handleReadMoreClick(e);
-            }}>
-              <svg className="readmore-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 13L12 16M12 16L15 13M12 16V8M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span className="readmore-text">{isExpanded ? 'Ler menos' : 'Ler mais'}</span>
-            </a>
+              <div className="price-container price-overlay" onClick={(e) => e.stopPropagation()}>
+                {hasDiscount && oldPrice && oldPrice.trim() !== '' && formattedOldPrice && formattedOldPrice.trim() !== '' && formattedOldPrice !== displayPrice && (
+                  <span className="price-old">{formattedOldPrice}</span>
+                )}
+                <span className="price-new">{displayPrice}</span>
+              </div>
+              <h3 className="product-title product-title-overlay" onClick={handleProductClick}>{title}</h3>
             </>
           )}
-          <div className="price-container" onClick={handleProductClick}>
-            {hasDiscount && oldPrice && oldPrice.trim() !== '' && formattedOldPrice && formattedOldPrice.trim() !== '' && formattedOldPrice !== displayPrice && (
-              <span className="price-old">{formattedOldPrice}</span>
-            )}
-            <span className="price-new">{displayPrice}</span>
-          </div>
         </div>
+        {!hideDescription && (
+          <div className="product-content">
+            <div className="TeD" ref={teDRef}>
+              <div className="product-text-wrapper">
+                <div className="product-text-content readmore" ref={textContentRef}>
+                  <h3 className="product-title" onClick={handleProductClick}>{title}</h3>
+                  {/* Se houver description1 ou description2, mostrar eles (comportamento antigo) */}
+                  {description1 && <p className="product-description" onClick={handleProductClick}>{description1}</p>}
+                  {description2 && <p className="product-description" onClick={handleProductClick}>{description2}</p>}
+                  
+                  {/* Se não houver description1/description2 mas houver fullDescription, mostrar prévia */}
+                  {!description1 && !description2 && fullDescription && !isExpanded && (
+                    <div className="product-description-preview">
+                      {fullDescription.split('\n').filter(line => line.trim()).slice(0, 2).map((line, index) => (
+                        <p key={index} className="product-description" onClick={handleProductClick}>{line}</p>
+                      ))}
+                      {fullDescription.split('\n').filter(line => line.trim()).length > 2 && (
+                        <p className="product-description" onClick={handleProductClick}>...</p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Quando expandido, mostrar fullDescription completo */}
+                  {isExpanded && fullDescription && (
+                    <div className="product-full-description">
+                      {fullDescription.split('\n').map((line, index) => (
+                        line ? (
+                          <p key={index} className="product-description">{line}</p>
+                        ) : (
+                          <br key={index} />
+                        )
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            {fullDescription && (
+              <>
+                {showReadMoreTop && !previewMode && (
+                  <a 
+                    href={`/product/${productId}`} 
+                    className="readmore-link readmore-link-top" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+                      if (scrollPosition > 0) {
+                        sessionStorage.setItem('homeScrollPosition', scrollPosition.toString());
+                      }
+                      navigate(`/produto/${productId}`);
+                    }}
+                  >
+                    <svg 
+                      className="readmore-icon" 
+                      width="20" 
+                      height="20" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      xmlns="http://www.w3.org/2000/svg"
+                      style={{ color: readmoreIconColor }}
+                    >
+                      <path d="M11 8C11 7.44772 11.4477 7 12 7C12.5523 7 13 7.44772 13 8V11H16C16.5523 11 17 11.4477 17 12C17 12.5523 16.5523 13 16 13H13V16C13 16.5523 12.5523 17 12 17C11.4477 17 11 16.5523 11 16V13H8C7.44771 13 7 12.5523 7 12C7 11.4477 7.44772 11 8 11H11V8Z" fill="currentColor"/>
+                      <path fillRule="evenodd" clipRule="evenodd" d="M23 12C23 18.0751 18.0751 23 12 23C5.92487 23 1 18.0751 1 12C1 5.92487 5.92487 1 12 1C18.0751 1 23 5.92487 23 12ZM3.00683 12C3.00683 16.9668 7.03321 20.9932 12 20.9932C16.9668 20.9932 20.9932 16.9668 20.9932 12C20.9932 7.03321 16.9668 3.00683 12 3.00683C7.03321 3.00683 3.00683 7.03321 3.00683 12Z" fill="currentColor"/>
+                    </svg>
+                    <span className="readmore-text">Ver tudo</span>
+                  </a>
+                )}
+              <a href="#" className="readmore-link" onClick={(e) => {
+                e.stopPropagation();
+                handleReadMoreClick(e);
+              }}>
+                <svg className="readmore-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 13L12 16M12 16L15 13M12 16V8M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="readmore-text">{isExpanded ? 'Ler menos' : 'Ler mais'}</span>
+              </a>
+              </>
+            )}
+            <div className="price-container" onClick={handleProductClick}>
+              {hasDiscount && oldPrice && oldPrice.trim() !== '' && formattedOldPrice && formattedOldPrice.trim() !== '' && formattedOldPrice !== displayPrice && (
+                <span className="price-old">{formattedOldPrice}</span>
+              )}
+              <span className="price-new">{displayPrice}</span>
+            </div>
+          </div>
+        )}
         {store?.customizations?.showBuyButton !== false && (
-          <div className="buy-btn-container" onClick={(e) => e.stopPropagation()}>
+          <div className={`buy-btn-container ${hideDescription ? 'no-content' : ''}`} onClick={(e) => e.stopPropagation()}>
             {cartHasItems && (
               <button className="trash-btn" onClick={handleTrashClick} aria-label="Remover do carrinho">
                 <img src={trashIcon} alt="Remover" className="trash-icon" />

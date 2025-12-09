@@ -14,7 +14,6 @@ import MinimumOrderBanner from './components/MinimumOrderBanner';
 // Páginas Admin
 import AdminLogin from './pages/admin/Login';
 import AdminRegister from './pages/admin/Register';
-import AdminDashboard from './pages/admin/Dashboard';
 import AdminProducts from './pages/admin/Products';
 import AdminSections from './pages/admin/Sections';
 import AdminCustomization from './pages/admin/Customization';
@@ -34,7 +33,7 @@ function AdminRedirect() {
     if (!loading) {
       if (user) {
         // Usar window.location.href para forçar reload completo
-        window.location.href = '/admin/dashboard';
+        window.location.href = '/admin/produtos';
       } else {
         // Usar window.location.href para forçar reload completo
         window.location.href = '/admin/login';
@@ -317,14 +316,6 @@ function App() {
         />
         <Route path="/admin/register" element={<AdminRegister />} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
         <Route
           path="/admin/produtos"
           element={

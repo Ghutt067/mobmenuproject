@@ -5,7 +5,6 @@ import { useStoreNavigation } from '../hooks/useStoreNavigation';
 import { getAllProducts, type Product } from '../services/productService';
 import { getProductImage } from '../utils/imageHelper';
 import { formatPrice } from '../utils/priceFormatter';
-import logoImage from '../assets/fequeijaologo.png';
 import { useStore } from '../contexts/StoreContext';
 import basketIcon from '../icons/basket-svgrepo-com.svg';
 import backIcon from '../icons/backicon.svg';
@@ -530,13 +529,15 @@ function Identification() {
       <header className="identification-header">
         <div className="identification-header-content">
           <div className="identification-logo">
-            <div className="identification-logo-circle">
-              <img 
-                src={store?.customizations?.profileImageUrl || logoImage} 
-                alt={store?.name || "Queijaria do Mineiro"} 
-                className="identification-logo-image" 
-              />
-            </div>
+            {store?.customizations?.profileImageUrl && (
+              <div className="identification-logo-circle">
+                <img 
+                  src={store.customizations.profileImageUrl} 
+                  alt={store?.name || "Logo"} 
+                  className="identification-logo-image" 
+                />
+              </div>
+            )}
           </div>
           <div className="identification-total" ref={cartDropdownRef}>
             <div className="identification-total-row">
@@ -962,7 +963,6 @@ function Identification() {
                               <div className="identification-shipping-option-content">
                                 <div className="identification-shipping-price">Grátis</div>
                                 <div className="identification-shipping-name">Envio por conta da casa!</div>
-                                <div className="identification-shipping-time">de 5 à 6 dias úteis</div>
                               </div>
                             </label>
                             <label className={`identification-shipping-option ${selectedShipping === 'express' ? 'selected' : ''}`}>
@@ -976,7 +976,6 @@ function Identification() {
                               <div className="identification-shipping-option-content">
                                 <div className="identification-shipping-price">R$12,90</div>
                                 <div className="identification-shipping-name">Valor do motoboy</div>
-                                <div className="identification-shipping-time">de 2 à 3 dias úteis</div>
                               </div>
                             </label>
                           </div>

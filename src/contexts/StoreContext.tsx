@@ -23,7 +23,9 @@ interface StoreCustomizations {
   showMenu: boolean;
   showCart: boolean;
   showBuyButton: boolean;
+  highContrastButtons: boolean; // Botões de alto contraste (preto/branco baseado na luminosidade)
   recommendedProductIds: string[];
+  featuredProductIds: string[]; // IDs dos produtos em destaque (aparecem abaixo do PromoBanner)
   minimumOrderValue: number; // Valor mínimo do pedido em centavos
   showFixedButton: boolean; // Mostrar botão flutuante na página de produto
 }
@@ -84,7 +86,53 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [store?.slug]);
 
+  // Limpar loja quando o pathname mudar para evitar mostrar loja errada
   useEffect(() => {
+    const urlSlug = (() => {
+      const pathMatch = window.location.pathname.match(/^\/([^\/]+)/);
+      if (pathMatch) {
+        const firstSegment = pathMatch[1];
+        const specialRoutes = ['admin', 'checkout', 'product', 'cart', 'loja'];
+        if (!specialRoutes.includes(firstSegment)) {
+          return firstSegment;
+        }
+      }
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('store');
+    })();
+
+    // Se há slug na URL e é diferente da loja atual, limpar imediatamente
+    if (urlSlug && store && store.slug !== urlSlug) {
+      console.log(`🚨 [StoreContext] Pathname mudou - limpando loja atual (${store.slug}) para carregar (${urlSlug})`);
+      setStore(null);
+    }
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    // LIMPAR sessionStorage se há slug na URL diferente do salvo
+    const urlSlug = (() => {
+      const pathMatch = window.location.pathname.match(/^\/([^\/]+)/);
+      if (pathMatch) {
+        const firstSegment = pathMatch[1];
+        const specialRoutes = ['admin', 'checkout', 'product', 'cart', 'loja'];
+        if (!specialRoutes.includes(firstSegment)) {
+          return firstSegment;
+        }
+      }
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('store');
+    })();
+
+    if (urlSlug) {
+      const savedSlug = sessionStorage.getItem('currentStoreSlug');
+      if (savedSlug && savedSlug !== urlSlug) {
+        console.log(`🧹 [StoreContext] Limpando sessionStorage: slug salvo (${savedSlug}) diferente do URL (${urlSlug})`);
+        sessionStorage.removeItem('currentStoreSlug');
+        // Limpar estado da loja também se for diferente
+        setStore(null);
+      }
+    }
+
     // Timeout de segurança: garantir que loading sempre termine em rotas de auth
     const isAuthRoute = window.location.pathname === '/admin/login' || 
                        window.location.pathname === '/admin/register';
@@ -129,6 +177,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const identifyAndLoadStore = async () => {
     try {
+      // Verificar se está na rota raiz - não carregar loja, apenas redirecionar
+      if (window.location.pathname === '/') {
+        console.log('🔀 [StoreContext] Rota raiz detectada, limpando loja e sessionStorage...');
+        setStore(null);
+        sessionStorage.removeItem('currentStoreSlug');
+        setLoading(false);
+        return;
+      }
+      
       // Verificar se está em rota admin (exceto login/register)
       const isAdminRoute = window.location.pathname.startsWith('/admin');
       const isAuthRoute = window.location.pathname === '/admin/login' || 
@@ -165,20 +222,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Se já temos uma loja carregada e ela corresponde ao slug atual, não recarregar
+      // Primeiro, obter o slug da URL (sem usar sessionStorage ainda)
+      const urlSlug = getStoreSlugFromUrl();
+      
+      // IMPORTANTE: Se há um slug na URL diferente da loja atual, LIMPAR imediatamente
+      if (urlSlug && store && store.slug !== urlSlug) {
+        console.log(`🔄 [StoreContext] Slug da URL (${urlSlug}) diferente da loja atual (${store.slug}), limpando estado...`);
+        setStore(null);
+        // Limpar sessionStorage também para evitar confusão
+        sessionStorage.removeItem('currentStoreSlug');
+      }
+      
       const storeSlug = getStoreSlug();
       
       if (!storeSlug) {
         // Não tentar carregar loja padrão se não houver slug
-        // Isso evita o erro "Loja não encontrada: demo"
         console.warn('⚠️ [StoreContext] Nenhum slug de loja encontrado. A loja não será carregada.');
-        console.warn('⚠️ [StoreContext] Para carregar uma loja, use: ?store=slug ou acesse via subdomínio');
-        // Se não há slug mas há uma loja carregada, manter ela (navegação interna)
-        if (store && store.slug) {
-          console.log('✅ [StoreContext] Mantendo loja atual durante navegação:', store.slug);
-          setLoading(false);
-          return;
-        }
         setStore(null);
         setLoading(false);
         return;
@@ -188,6 +247,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           console.log('✅ [StoreContext] Loja já carregada, mantendo:', storeSlug);
           setLoading(false);
           return;
+        }
+        // Limpar estado antes de carregar nova loja
+        if (store) {
+          setStore(null);
         }
         await loadStoreBySlug(storeSlug);
       }
@@ -199,63 +262,76 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const getStoreSlug = (): string | null => {
+  // Função auxiliar para obter slug APENAS da URL (sem sessionStorage)
+  const getStoreSlugFromUrl = (): string | null => {
     // Método 1: Path-based (ex: /nomedaloja, /nomedaloja/sacola)
-    // Extrair slug do primeiro segmento do path
     const pathMatch = window.location.pathname.match(/^\/([^\/]+)/);
     if (pathMatch) {
       const firstSegment = pathMatch[1];
-      
-      // Ignorar rotas admin e outras rotas especiais
       const specialRoutes = ['admin', 'checkout', 'product', 'cart', 'loja'];
       if (!specialRoutes.includes(firstSegment)) {
-        const slug = firstSegment;
-        // Salvar no sessionStorage para preservar durante navegação
-        sessionStorage.setItem('currentStoreSlug', slug);
-        return slug;
+        return firstSegment;
       }
     }
 
-    // Método 2: Query parameter (para compatibilidade/desenvolvimento)
+    // Método 2: Query parameter
     const urlParams = new URLSearchParams(window.location.search);
     const storeParam = urlParams.get('store');
     if (storeParam) {
-      // Salvar no sessionStorage para preservar durante navegação
-      sessionStorage.setItem('currentStoreSlug', storeParam);
       return storeParam;
     }
 
-    // Método 3: Subdomínio (para produção)
+    // Método 3: Subdomínio
     const hostname = window.location.hostname;
-    
-    // Produção com subdomínio
-    // Ex: loja1.seudominio.com -> extrai "loja1"
     const parts = hostname.split('.');
     if (parts.length >= 3 && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      const slug = parts[0]; // Primeiro segmento é o slug
-      // Salvar no sessionStorage para preservar durante navegação
-      sessionStorage.setItem('currentStoreSlug', slug);
-      return slug;
+      return parts[0];
     }
     
-    // Método 4: Path-based antigo (ex: seudominio.com/loja/slug) - para compatibilidade
+    // Método 4: Path-based antigo
     const oldPathMatch = window.location.pathname.match(/^\/loja\/([^\/]+)/);
     if (oldPathMatch) {
-      const slug = oldPathMatch[1];
-      // Salvar no sessionStorage para preservar durante navegação
-      sessionStorage.setItem('currentStoreSlug', slug);
-      return slug;
+      return oldPathMatch[1];
     }
 
-    // Método 5: Verificar sessionStorage (preservar loja durante navegação)
-    // Se não encontrou na URL, mas há uma loja salva no sessionStorage, usar ela
+    return null;
+  };
+
+  const getStoreSlug = (): string | null => {
+    // PRIMEIRO: Sempre verificar URL primeiro (tem prioridade)
+    const urlSlug = getStoreSlugFromUrl();
+    
+    if (urlSlug) {
+      // Há slug na URL - usar ele e atualizar sessionStorage
+      const savedSlug = sessionStorage.getItem('currentStoreSlug');
+      if (savedSlug && savedSlug !== urlSlug) {
+        console.log(`🔄 [StoreContext] Slug na URL (${urlSlug}) diferente do salvo (${savedSlug}), atualizando...`);
+      }
+      sessionStorage.setItem('currentStoreSlug', urlSlug);
+      return urlSlug;
+    }
+
+    // Se NÃO há slug na URL, verificar sessionStorage (apenas para navegação interna)
+    // MAS: só usar se estivermos em uma rota de loja (não admin, não raiz)
     const savedSlug = sessionStorage.getItem('currentStoreSlug');
     if (savedSlug) {
-      console.log('📦 [StoreContext] Usando slug salvo do sessionStorage:', savedSlug);
+      const pathname = window.location.pathname;
+      const isRoot = pathname === '/';
+      const isAdminRoute = pathname.startsWith('/admin');
+      
+      // Se estiver na raiz ou em admin, NÃO usar sessionStorage
+      if (isRoot || isAdminRoute) {
+        console.log(`🧹 [StoreContext] Rota raiz/admin detectada, limpando sessionStorage (slug: ${savedSlug})...`);
+        sessionStorage.removeItem('currentStoreSlug');
+        return null;
+      }
+      
+      console.log('📦 [StoreContext] Nenhum slug na URL, usando slug do sessionStorage:', savedSlug);
       return savedSlug;
     }
 
-    return null; // Não retornar 'demo' automaticamente
+    // Nenhum slug encontrado
+    return null;
   };
 
   const loadStoreBySlug = async (slug: string) => {
@@ -281,6 +357,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           hint: error?.hint
         });
       }
+      
+      // IMPORTANTE: Limpar sessionStorage se a loja não foi encontrada
+      // Isso evita tentar carregar a mesma loja inexistente novamente
+      const savedSlug = sessionStorage.getItem('currentStoreSlug');
+      if (savedSlug === slug) {
+        console.log(`🧹 [StoreContext] Loja não encontrada (${slug}), limpando sessionStorage...`);
+        sessionStorage.removeItem('currentStoreSlug');
+        // Limpar também o estado da loja
+        setStore(null);
+      }
+      
       // Não tentar carregar loja padrão - apenas retornar
       return;
     }
@@ -342,24 +429,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         logoAltText: data.logo_alt_text,
         profileImageUrl: data.profile_image_url,
         checkoutTheme: (data.checkout_theme === 'local' || data.checkout_theme === 'ecommerce') ? data.checkout_theme : 'ecommerce',
-        promoBannerVisible: data.promo_banner_visible ?? true,
-        promoBannerText: data.promo_banner_text || 'ESQUENTA BLACK FRIDAY - ATÉ 60%OFF',
-        promoBannerBgColor: data.promo_banner_bg_color || '#FDD8A7',
+        promoBannerVisible: data.promo_banner_visible ?? false,  // Oculto por padrão se não configurado
+        promoBannerText: data.promo_banner_text || '',
+        promoBannerBgColor: data.promo_banner_bg_color || null,  // NULL se não configurado
         promoBannerTextColor: data.promo_banner_text_color || '#000000',
         promoBannerUseGradient: data.promo_banner_use_gradient ?? true,
         promoBannerAnimation: data.promo_banner_animation || 'blink',
         promoBannerAnimationSpeed: data.promo_banner_animation_speed ?? 1,
-        primaryColor: data.primary_color || '#FF6B35',
-        secondaryColor: data.secondary_color || '#004E89',
+        primaryColor: data.primary_color || null,  // NULL se não configurado
+        secondaryColor: data.secondary_color || null,  // NULL se não configurado
         backgroundColor: data.background_color || '#FFFFFF',
         textColor: data.text_color || '#000000',
         showSearch: data.show_search ?? true,
         showMenu: data.show_menu ?? true,
         showCart: data.show_cart ?? true,
         showBuyButton: data.show_buy_button ?? true,
+        highContrastButtons: data.high_contrast_buttons ?? true,
         recommendedProductIds: Array.isArray(data.recommended_product_ids) 
           ? data.recommended_product_ids 
           : (data.recommended_product_ids ? [data.recommended_product_ids] : []),
+        featuredProductIds: Array.isArray(data.featured_product_ids) 
+          ? data.featured_product_ids 
+          : (data.featured_product_ids ? [data.featured_product_ids] : []),
         minimumOrderValue: data.minimum_order_value ?? 0,
         showFixedButton: data.show_fixed_button !== null && data.show_fixed_button !== undefined 
           ? data.show_fixed_button 

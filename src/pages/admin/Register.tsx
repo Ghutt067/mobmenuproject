@@ -539,18 +539,19 @@ export default function AdminRegister() {
         console.log('⚠️ Função SQL falhou, tentando inserção direta...');
         console.error('Erro da função:', customizationsError);
         
-        // Fallback: tentar inserção direta
+        // Fallback: tentar inserção direta com valores VAZIOS
+        // O usuário deve configurar manualmente na primeira vez
         await supabase
           .from('store_customizations')
           .insert({
             store_id: storeData.id,
-            promo_banner_visible: true,
-            promo_banner_text: 'ESQUENTA BLACK FRIDAY - ATÉ 60%OFF',
-            promo_banner_bg_color: '#FDD8A7',
+            promo_banner_visible: false,  // Banner oculto por padrão
+            promo_banner_text: '',        // Texto vazio
+            promo_banner_bg_color: null,  // Sem cor (NULL)
             promo_banner_text_color: '#000000',
             promo_banner_use_gradient: true,
-            primary_color: '#FF6B35',
-            secondary_color: '#004E89',
+            primary_color: null,          // Sem cor primária (NULL)
+            secondary_color: null,       // Sem cor secundária (NULL)
             background_color: '#FFFFFF',
             text_color: '#000000',
             show_search: true,

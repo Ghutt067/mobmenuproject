@@ -112,8 +112,8 @@ export default function AdminPersonalization() {
   
   // Estados para PromoBanner
   const [promoBannerVisible, setPromoBannerVisible] = useState(true);
-  const [promoBannerText, setPromoBannerText] = useState('ESQUENTA BLACK FRIDAY - ATÉ 60%OFF');
-  const [promoBannerBgColor, setPromoBannerBgColor] = useState('#FDD8A7');
+  const [promoBannerText, setPromoBannerText] = useState('');
+  const [promoBannerBgColor, setPromoBannerBgColor] = useState('#E8E8E8');
   const [promoBannerTextColor, setPromoBannerTextColor] = useState('#000000');
   const [promoBannerUseGradient, setPromoBannerUseGradient] = useState(true);
   const [promoBannerAnimation, setPromoBannerAnimation] = useState<string>('blink');
@@ -125,8 +125,8 @@ export default function AdminPersonalization() {
   const [editingPromoText, setEditingPromoText] = useState('');
 
   // Estados para cores da loja
-  const [primaryColor, setPrimaryColor] = useState('#FF6B35');
-  const [secondaryColor, setSecondaryColor] = useState('#004E89');
+  const [primaryColor, setPrimaryColor] = useState('#808080');
+  const [secondaryColor, setSecondaryColor] = useState('#2C3E50');
   const [backgroundColor, setBackgroundColor] = useState('#FFFFFF');
   const [textColor, setTextColor] = useState('#000000');
   const [savingColors, setSavingColors] = useState(false);
@@ -135,9 +135,17 @@ export default function AdminPersonalization() {
   const [showBuyButton, setShowBuyButton] = useState(true);
   const [savingBuyButton, setSavingBuyButton] = useState(false);
   
+  // Estado para botões de alto contraste
+  const [highContrastButtons, setHighContrastButtons] = useState(true);
+  const [savingHighContrastButtons, setSavingHighContrastButtons] = useState(false);
+  
   // Refs para controle de salvamento do botão de comprar
   const isInitialBuyButtonLoadRef = useRef(true);
   const previousBuyButtonValueRef = useRef<boolean | null>(null);
+  
+  // Refs para controle de salvamento dos botões de alto contraste
+  const isInitialHighContrastButtonsLoadRef = useRef(true);
+  const previousHighContrastButtonsValueRef = useRef<boolean | null>(null);
 
   // Refs para controle de salvamento do botão flutuante
   const isInitialFixedButtonLoadRef = useRef(true);
@@ -214,10 +222,10 @@ export default function AdminPersonalization() {
     if (store) {
       const customization = store.customizations;
       // Usar a mesma lógica do PromoBanner para determinar os valores
-      // O PromoBanner usa: customization?.promoBannerText || 'ESQUENTA BLACK FRIDAY - ATÉ 60%OFF'
+      // O PromoBanner usa: customization?.promoBannerText || ''
       // Então se promoBannerText for undefined/null, mostrar o padrão
-      const textToShow = customization?.promoBannerText || 'ESQUENTA BLACK FRIDAY - ATÉ 60%OFF';
-      const bgColorToShow = customization?.promoBannerBgColor || '#FDD8A7';
+      const textToShow = customization?.promoBannerText || '';
+      const bgColorToShow = customization?.promoBannerBgColor || '#E8E8E8';
       const textColorToShow = customization?.promoBannerTextColor || '#000000';
       const visible = customization?.promoBannerVisible ?? true;
       const useGradient = customization?.promoBannerUseGradient ?? true;
@@ -245,8 +253,8 @@ export default function AdminPersonalization() {
       };
 
       // Carregar valores das cores da loja
-      const primaryColorToShow = customization?.primaryColor || '#FF6B35';
-      const secondaryColorToShow = customization?.secondaryColor || '#004E89';
+      const primaryColorToShow = customization?.primaryColor || '#808080';
+      const secondaryColorToShow = customization?.secondaryColor || '#2C3E50';
       const backgroundColorToShow = customization?.backgroundColor || '#FFFFFF';
       const storeTextColorToShow = customization?.textColor || '#000000';
 
@@ -269,20 +277,42 @@ export default function AdminPersonalization() {
       // Resetar refs quando carregar do banco
       isInitialBuyButtonLoadRef.current = true;
       previousBuyButtonValueRef.current = showBuyButtonToShow;
+      
+      // Carregar valor de botões de alto contraste
+      const highContrastButtonsToShow = customization?.highContrastButtons ?? true;
+      setHighContrastButtons(highContrastButtonsToShow);
+      // Resetar refs quando carregar do banco
+      isInitialHighContrastButtonsLoadRef.current = true;
+      previousHighContrastButtonsValueRef.current = highContrastButtonsToShow;
 
       // Carregar produtos recomendados
       const recommendedIds = customization?.recommendedProductIds || [];
-      setRecommendedProductIds(recommendedIds);
-      // Resetar refs quando carregar do banco
+      // Marcar que estamos carregando do banco
+      isLoadingRecommendedProductsFromDatabaseRef.current = true;
+      // Resetar refs ANTES de setar o valor para evitar salvamento automático na primeira carga
       isInitialRecommendedProductsLoadRef.current = true;
       previousRecommendedProductsRef.current = recommendedIds;
+      setRecommendedProductIds(recommendedIds);
+      // Marcar que terminamos de carregar (usar setTimeout para garantir que o useEffect de salvamento já executou)
+      setTimeout(() => {
+        isLoadingRecommendedProductsFromDatabaseRef.current = false;
+      }, 100);
 
       // Carregar valor mínimo do pedido
       const minOrderValue = customization?.minimumOrderValue ?? 0;
+      // Marcar que estamos carregando do banco
+      isLoadingFromDatabaseRef.current = true;
+      // Resetar refs ANTES de setar o valor para evitar salvamento automático na primeira carga
+      isInitialMinimumOrderLoadRef.current = true;
+      previousMinimumOrderValueRef.current = minOrderValue;
       setMinimumOrderValue(minOrderValue);
       // Converter centavos para reais para exibição
       const minOrderInReais = minOrderValue / 100;
       setMinimumOrderValueDisplay(minOrderInReais.toFixed(2).replace('.', ','));
+      // Marcar que terminamos de carregar (usar setTimeout para garantir que o useEffect de salvamento já executou)
+      setTimeout(() => {
+        isLoadingFromDatabaseRef.current = false;
+      }, 100);
 
       // Carregar valor de exibir botão flutuante
       const showFixedButtonToShow = customization?.showFixedButton ?? true;
@@ -861,6 +891,101 @@ export default function AdminPersonalization() {
     };
   }, [showBuyButton, store?.id, storeLoading, authLoading, reloadCustomizations]);
 
+  // Refs para timeout e controle de salvamento dos botões de alto contraste
+  const saveHighContrastButtonsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSavingHighContrastButtonsRef = useRef(false);
+
+  // Salvar automaticamente quando highContrastButtons mudar
+  useEffect(() => {
+    // Ignorar na primeira renderização
+    if (isInitialHighContrastButtonsLoadRef.current) {
+      isInitialHighContrastButtonsLoadRef.current = false;
+      previousHighContrastButtonsValueRef.current = highContrastButtons;
+      return;
+    }
+
+    // Não salvar se não houver store ou se estiver carregando
+    if (!store?.id || storeLoading || authLoading) {
+      return;
+    }
+
+    // Não salvar se o valor não mudou
+    if (previousHighContrastButtonsValueRef.current === highContrastButtons) {
+      return;
+    }
+
+    // Não salvar se já estiver salvando
+    if (isSavingHighContrastButtonsRef.current) {
+      return;
+    }
+
+    // Atualizar valor anterior
+    previousHighContrastButtonsValueRef.current = highContrastButtons;
+
+    // Limpar timeout anterior se existir
+    if (saveHighContrastButtonsTimeoutRef.current) {
+      clearTimeout(saveHighContrastButtonsTimeoutRef.current);
+    }
+
+    // Aguardar 500ms antes de salvar (debounce)
+    saveHighContrastButtonsTimeoutRef.current = setTimeout(async () => {
+      isSavingHighContrastButtonsRef.current = true;
+      setSavingHighContrastButtons(true);
+
+      try {
+        const { data: existingCustomization } = await supabase
+          .from('store_customizations')
+          .select('id')
+          .eq('store_id', store.id)
+          .maybeSingle();
+
+        const updateData = {
+          high_contrast_buttons: highContrastButtons,
+          updated_at: new Date().toISOString()
+        };
+
+        if (existingCustomization) {
+          // Atualizar existente
+          const { error } = await supabase
+            .from('store_customizations')
+            .update(updateData)
+            .eq('store_id', store.id);
+
+          if (error) throw error;
+        } else {
+          // Criar novo
+          const { error } = await supabase
+            .from('store_customizations')
+            .insert({
+              store_id: store.id,
+              ...updateData
+            });
+
+          if (error) throw error;
+        }
+
+        // Recarregar customizações
+        await reloadCustomizations();
+        setMessage('✅ Configuração de botões de alto contraste atualizada!');
+      } catch (error: any) {
+        console.error('Erro ao salvar configuração de botões de alto contraste:', error);
+        setMessage(`❌ Erro ao salvar: ${error.message || 'Erro desconhecido'}`);
+        // Reverter o valor em caso de erro
+        previousHighContrastButtonsValueRef.current = !highContrastButtons;
+        setHighContrastButtons(!highContrastButtons);
+      } finally {
+        setSavingHighContrastButtons(false);
+        isSavingHighContrastButtonsRef.current = false;
+      }
+    }, 500);
+
+    return () => {
+      if (saveHighContrastButtonsTimeoutRef.current) {
+        clearTimeout(saveHighContrastButtonsTimeoutRef.current);
+      }
+    };
+  }, [highContrastButtons, store?.id, storeLoading, authLoading, reloadCustomizations]);
+
   // Refs para timeout e controle de salvamento do botão flutuante
   const saveFixedButtonTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSavingFixedButtonRef = useRef(false);
@@ -971,6 +1096,7 @@ export default function AdminPersonalization() {
   // Refs para timeout e controle de salvamento dos produtos recomendados
   const saveRecommendedProductsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSavingRecommendedProductsRef = useRef(false);
+  const isLoadingRecommendedProductsFromDatabaseRef = useRef(false);
 
   // Função para comparar arrays de IDs
   const arraysEqual = (a: string[], b: string[]): boolean => {
@@ -980,6 +1106,11 @@ export default function AdminPersonalization() {
 
   // Salvar automaticamente quando recommendedProductIds mudar
   useEffect(() => {
+    // Ignorar se estamos carregando do banco
+    if (isLoadingRecommendedProductsFromDatabaseRef.current) {
+      return;
+    }
+
     // Ignorar na primeira renderização
     if (isInitialRecommendedProductsLoadRef.current) {
       isInitialRecommendedProductsLoadRef.current = false;
@@ -1204,6 +1335,7 @@ export default function AdminPersonalization() {
   const previousMinimumOrderValueRef = useRef<number | null>(null);
   const saveMinimumOrderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSavingMinimumOrderRef = useRef(false);
+  const isLoadingFromDatabaseRef = useRef(false);
 
   // Converter valor de exibição (reais) para centavos
   const handleMinimumOrderValueChange = (value: string) => {
@@ -1219,7 +1351,12 @@ export default function AdminPersonalization() {
 
   // Salvar automaticamente quando minimumOrderValue mudar
   useEffect(() => {
-    // Ignorar na primeira renderização
+    // Ignorar se estamos carregando do banco
+    if (isLoadingFromDatabaseRef.current) {
+      return;
+    }
+
+    // Ignorar na primeira renderização ou se ainda não carregou do banco
     if (isInitialMinimumOrderLoadRef.current) {
       isInitialMinimumOrderLoadRef.current = false;
       previousMinimumOrderValueRef.current = minimumOrderValue;
@@ -1228,6 +1365,12 @@ export default function AdminPersonalization() {
 
     // Não salvar se não houver store ou se estiver carregando
     if (!store?.id || storeLoading || authLoading) {
+      return;
+    }
+
+    // Não salvar se o previousMinimumOrderValueRef ainda não foi inicializado (ainda carregando)
+    if (previousMinimumOrderValueRef.current === null) {
+      previousMinimumOrderValueRef.current = minimumOrderValue;
       return;
     }
 
@@ -1288,7 +1431,7 @@ export default function AdminPersonalization() {
 
         // Recarregar customizações
         await reloadCustomizations();
-        setMessage('✅ Valor mínimo do pedido atualizado!');
+        setMessage('Salvo!');
       } catch (error: any) {
         console.error('Erro ao salvar valor mínimo do pedido:', error);
         setMessage(`❌ Erro ao salvar: ${error.message || 'Erro desconhecido'}`);
@@ -3211,7 +3354,7 @@ export default function AdminPersonalization() {
                         } as React.CSSProperties}
                         title="Clique duas vezes para editar"
                       >
-                        {promoBannerText || 'ESQUENTA BLACK FRIDAY - ATÉ 60%OFF'}
+                        {promoBannerText || ''}
                       </p>
                     )}
                   </section>
@@ -3365,11 +3508,26 @@ export default function AdminPersonalization() {
                 </div>
               </div>
 
-              {savingBuyButton && (
-                <div style={{ fontSize: '13px', color: '#666', fontStyle: 'italic', paddingLeft: '16px' }}>
-                  Salvando configuração...
+              {/* Toggle para botões de alto contraste */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                  <label style={{ fontSize: '16px', fontWeight: '600', color: '#333', margin: 0 }}>
+                    Botões de alto contraste
+                  </label>
+                  <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
+                    Quando ativado, o texto dos botões usará cores preto/branco para máximo contraste com a cor de fundo
+                  </p>
                 </div>
-              )}
+                <div className="toggle-container" style={{ margin: 0, flexShrink: 0 }}>
+                  <input
+                    type="checkbox"
+                    id="highContrastButtonsToggle"
+                    checked={highContrastButtons}
+                    onChange={(e) => setHighContrastButtons(e.target.checked)}
+                  />
+                  <label htmlFor="highContrastButtonsToggle">Toggle</label>
+                </div>
+              </div>
 
               {/* Toggle para exibir botão flutuante */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
@@ -3391,12 +3549,6 @@ export default function AdminPersonalization() {
                   <label htmlFor="showFixedButtonToggle">Toggle</label>
                 </div>
               </div>
-
-              {savingFixedButton && (
-                <div style={{ fontSize: '13px', color: '#666', fontStyle: 'italic', paddingLeft: '16px' }}>
-                  Salvando configuração...
-                </div>
-              )}
             </div>
           </div>
         </div>

@@ -11,7 +11,7 @@ const animationStyles = `
     width: 100%;
     padding: 12px 16px;
     text-align: center;
-    background-color: #FDD8A7;
+    background-color: #E8E8E8;
     box-sizing: border-box;
   }
   .promo-text {
@@ -102,8 +102,13 @@ const PromoBanner = () => {
     return null;
   }
   
-  const text = customization?.promoBannerText || 'ESQUENTA BLACK FRIDAY - ATÉ 60%OFF';
-  const bgColor = customization?.promoBannerBgColor || '#FDD8A7';
+  const text = customization?.promoBannerText || '';
+  // Se o texto estiver vazio, não mostrar o banner
+  if (!text || text.trim() === '') {
+    return null;
+  }
+  
+  const bgColor = customization?.promoBannerBgColor || '#E8E8E8';
   const textColor = customization?.promoBannerTextColor || '#000000';
   const useGradient = customization?.promoBannerUseGradient ?? true;
   const animation = (customization?.promoBannerAnimation && customization.promoBannerAnimation !== 'none') ? customization.promoBannerAnimation : 'blink';

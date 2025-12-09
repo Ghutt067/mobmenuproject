@@ -71,10 +71,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         <nav className="sidebar-nav">
-          <Link to="/admin/dashboard" className={isActive('/admin/dashboard')} onClick={closeSidebar}>
-            <span className="nav-icon">📊</span>
-            Dashboard
-          </Link>
           <Link to="/admin/produtos" className={isActive('/admin/produtos')} onClick={closeSidebar}>
             <span className="nav-icon">🛍️</span>
             Produtos/Seções

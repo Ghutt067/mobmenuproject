@@ -13,7 +13,7 @@
   text-align: center;
   padding: 40px 20px;
   font-size: 18px;
-  color: #4A2C1A;
+  color: var(--store-text-color, #4A2C1A);
 }
 
 .product-details-header {
@@ -129,7 +129,7 @@
 .product-details-buy-btn {
   width: 100%;
   background-color: var(--store-primary-color, #4A2C1A);
-  color: var(--store-text-color, #FFFFFF);
+  color: var(--store-primary-button-text, #FFFFFF);
   border: none;
   border-radius: 8px;
   padding: 16px;
@@ -153,7 +153,7 @@
   bottom: 20px;
   right: 20px;
   background-color: var(--store-primary-color, #4A2C1A);
-  color: var(--store-text-color, #FFFFFF);
+  color: var(--store-primary-button-text, #FFFFFF);
   border: none;
   border-radius: 24px;
   padding: 12px 20px;

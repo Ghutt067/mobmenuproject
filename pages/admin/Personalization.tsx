@@ -248,17 +248,32 @@ export default function AdminPersonalization() {
 
       // Carregar produtos recomendados
       const recommendedIds = customization?.recommendedProductIds || [];
-      setRecommendedProductIds(recommendedIds);
-      // Resetar refs quando carregar do banco
+      // Marcar que estamos carregando do banco
+      isLoadingRecommendedProductsFromDatabaseRef.current = true;
+      // Resetar refs ANTES de setar o valor para evitar salvamento automático na primeira carga
       isInitialRecommendedProductsLoadRef.current = true;
       previousRecommendedProductsRef.current = recommendedIds;
+      setRecommendedProductIds(recommendedIds);
+      // Marcar que terminamos de carregar (usar setTimeout para garantir que o useEffect de salvamento já executou)
+      setTimeout(() => {
+        isLoadingRecommendedProductsFromDatabaseRef.current = false;
+      }, 100);
 
       // Carregar valor mínimo do pedido
       const minOrderValue = customization?.minimumOrderValue ?? 0;
+      // Marcar que estamos carregando do banco
+      isLoadingFromDatabaseRef.current = true;
+      // Resetar refs ANTES de setar o valor para evitar salvamento automático na primeira carga
+      isInitialMinimumOrderLoadRef.current = true;
+      previousMinimumOrderValueRef.current = minOrderValue;
       setMinimumOrderValue(minOrderValue);
       // Converter centavos para reais para exibição
       const minOrderInReais = minOrderValue / 100;
       setMinimumOrderValueDisplay(minOrderInReais.toFixed(2).replace('.', ','));
+      // Marcar que terminamos de carregar (usar setTimeout para garantir que o useEffect de salvamento já executou)
+      setTimeout(() => {
+        isLoadingFromDatabaseRef.current = false;
+      }, 100);
 
       // Carregar valor de exibir botão flutuante
       const showFixedButtonToShow = customization?.showFixedButton ?? true;
@@ -938,6 +953,7 @@ export default function AdminPersonalization() {
   // Refs para timeout e controle de salvamento dos produtos recomendados
   const saveRecommendedProductsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSavingRecommendedProductsRef = useRef(false);
+  const isLoadingRecommendedProductsFromDatabaseRef = useRef(false);
 
   // Função para comparar arrays de IDs
   const arraysEqual = (a: string[], b: string[]): boolean => {
@@ -947,6 +963,11 @@ export default function AdminPersonalization() {
 
   // Salvar automaticamente quando recommendedProductIds mudar
   useEffect(() => {
+    // Ignorar se estamos carregando do banco
+    if (isLoadingRecommendedProductsFromDatabaseRef.current) {
+      return;
+    }
+
     // Ignorar na primeira renderização
     if (isInitialRecommendedProductsLoadRef.current) {
       isInitialRecommendedProductsLoadRef.current = false;
@@ -1170,6 +1191,7 @@ export default function AdminPersonalization() {
   const previousMinimumOrderValueRef = useRef<number | null>(null);
   const saveMinimumOrderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSavingMinimumOrderRef = useRef(false);
+  const isLoadingFromDatabaseRef = useRef(false);
 
   // Converter valor de exibição (reais) para centavos
   const handleMinimumOrderValueChange = (value: string) => {
@@ -1185,7 +1207,12 @@ export default function AdminPersonalization() {
 
   // Salvar automaticamente quando minimumOrderValue mudar
   useEffect(() => {
-    // Ignorar na primeira renderização
+    // Ignorar se estamos carregando do banco
+    if (isLoadingFromDatabaseRef.current) {
+      return;
+    }
+
+    // Ignorar na primeira renderização ou se ainda não carregou do banco
     if (isInitialMinimumOrderLoadRef.current) {
       isInitialMinimumOrderLoadRef.current = false;
       previousMinimumOrderValueRef.current = minimumOrderValue;
@@ -1194,6 +1221,12 @@ export default function AdminPersonalization() {
 
     // Não salvar se não houver store ou se estiver carregando
     if (!store?.id || storeLoading || authLoading) {
+      return;
+    }
+
+    // Não salvar se o previousMinimumOrderValueRef ainda não foi inicializado (ainda carregando)
+    if (previousMinimumOrderValueRef.current === null) {
+      previousMinimumOrderValueRef.current = minimumOrderValue;
       return;
     }
 
@@ -1254,7 +1287,7 @@ export default function AdminPersonalization() {
 
         // Recarregar customizações
         await reloadCustomizations();
-        setMessage('✅ Valor mínimo do pedido atualizado!');
+        setMessage('Salvo!');
       } catch (error: any) {
         console.error('Erro ao salvar valor mínimo do pedido:', error);
         setMessage(`❌ Erro ao salvar: ${error.message || 'Erro desconhecido'}`);

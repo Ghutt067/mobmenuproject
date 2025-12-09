@@ -669,7 +669,7 @@
   height: 14px;
   display: block;
   transition: opacity 0.2s ease;
-  color: var(--store-text-color, #ffffff);
+  color: var(--store-secondary-button-text, #ffffff);
 }
 
 /* Seção de Cupom */
@@ -877,7 +877,7 @@
 
 .checkout-btn-secondary {
   background: var(--store-secondary-color, #FCD7A6);
-  color: var(--store-text-color, #4A2C1A);
+  color: var(--store-secondary-button-text, #FFFFFF);
   border: none;
   padding: 14px;
   font-size: 16px;
@@ -921,7 +921,7 @@
   justify-content: center;
   gap: 8px;
   background: var(--store-primary-color, #16A34A);
-  color: var(--store-text-color, #FFFFFF);
+  color: var(--store-primary-button-text, #FFFFFF);
   padding: 14px;
   border-radius: 6px;
   font-size: 16px;

@@ -336,7 +336,7 @@
   height: 20px;
   display: block;
   object-fit: contain;
-  filter: brightness(0) invert(1);
+  filter: var(--store-icon-filter, brightness(0) saturate(100%));
 }
 
 .identification-cart-count {
@@ -794,7 +794,7 @@
 }
 
 .identification-cep-loading {
-  color: #4A2C1A;
+  color: var(--store-primary-color, #808080);
   background-color: rgba(255, 255, 255, 0.9);
 }
 
@@ -822,7 +822,7 @@
 
 .identification-cep-search-btn {
   padding: 20px 24px;
-  background-color: #FDD8A7;
+  background-color: #E8E8E8;
   color: #4A2C1A;
   border: 1px solid rgba(0, 0, 0, 0.5);
   border-bottom-width: 2px;
@@ -1060,7 +1060,7 @@
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: #FDD8A7;
+  accent-color: #E8E8E8;
   background-color: transparent;
   border: 2px solid rgba(0, 0, 0, 0.2);
   border-radius: 4px;
@@ -1487,7 +1487,7 @@
   align-items: center;
   justify-content: center;
   background-color: var(--store-primary-color, #4A2C1A);
-  color: var(--store-background-color, #FFFFFF);
+  color: var(--store-primary-button-text, #FFFFFF);
 }
 
 .identification-btn-continue:before {

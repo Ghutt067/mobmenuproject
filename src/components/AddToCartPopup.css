@@ -145,8 +145,8 @@
 }
 
 .popup-btn-continue {
-  background-color: var(--store-primary-color, #FDD8A7);
-  color: var(--store-text-color, #4A2C1A);
+  background-color: var(--store-primary-color, #808080);
+  color: var(--store-primary-button-text, #FFFFFF);
 }
 
 .popup-btn-continue:hover {
@@ -155,7 +155,7 @@
 
 .popup-btn-add {
   background-color: var(--store-secondary-color, #4A2C1A);
-  color: var(--store-text-color, #FFFFFF);
+  color: var(--store-secondary-button-text, #FFFFFF);
 }
 
 .popup-btn-add:hover {

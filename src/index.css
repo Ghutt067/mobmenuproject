@@ -61,6 +61,20 @@
   font-style: normal;
 }
 
+/* Variáveis CSS padrão - serão sobrescritas pelo StoreContext quando a loja carregar */
+:root {
+  --store-primary-color: #808080;
+  --store-secondary-color: #2C3E50;
+  --store-background-color: #FFFFFF;
+  --store-text-color: #000000;
+  --store-promo-banner-bg-color: #E8E8E8;
+  --store-icon-filter: brightness(0) saturate(100%);
+  --store-primary-button-text: #FFFFFF;
+  --store-secondary-button-text: #FFFFFF;
+  --store-primary-button-icon-filter: brightness(0) saturate(100%) invert(1);
+  --store-secondary-button-icon-filter: brightness(0) saturate(100%) invert(1);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -96,8 +110,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #FFFFFF;
-  color: #4A2C1A;
+  background-color: var(--store-background-color, #FFFFFF);
+  color: var(--store-text-color, #000000);
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
   overflow-x: hidden;

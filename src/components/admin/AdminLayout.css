@@ -2,6 +2,15 @@
   display: flex;
   min-height: 100vh;
   background-color: #f5f5f5;
+  /* Isolar área de admin das variáveis CSS da loja */
+  color: #333333;
+}
+
+/* Garantir que todos os elementos dentro do admin não herdem cores da loja */
+.admin-layout,
+.admin-layout * {
+  --store-text-color: #333333;
+  --store-background-color: #f5f5f5;
 }
 
 .mobile-menu-toggle {
@@ -11,7 +20,7 @@
   left: 15px;
   z-index: 1001;
   background-color: #1a1a1a;
-  color: var(--admin-menu-icon-color, white);
+  color: #FFFFFF;
   border: none;
   border-radius: 6px;
   padding: 10px 14px;
@@ -112,7 +121,7 @@
 .sidebar-nav a.active {
   background-color: #2a2a2a;
   color: white;
-  border-left-color: var(--admin-primary-color, #FF6B35);
+  border-left-color: #808080;
 }
 
 .nav-icon {
@@ -165,7 +174,7 @@
   display: block;
   text-align: center;
   padding: 10px;
-  color: var(--admin-primary-color, #FF6B35);
+  color: #808080;
   text-decoration: none;
   font-size: 14px;
   transition: color 0.2s ease;
